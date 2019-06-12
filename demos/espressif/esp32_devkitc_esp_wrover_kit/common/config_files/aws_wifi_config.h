@@ -1,5 +1,5 @@
 /*
- * Amazon FreeRTOS V1.4.8
+ * Amazon FreeRTOS V1.4.4
  * Copyright (C) 2018 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -59,7 +59,7 @@
 /**
  * @brief Max passphrase length
  */
-#define wificonfigMAX_PASSPHRASE_LEN          ( 64 )
+#define wificonfigMAX_PASSPHRASE_LEN          ( 32 )
 
 /**
  * @brief Soft Access point SSID
