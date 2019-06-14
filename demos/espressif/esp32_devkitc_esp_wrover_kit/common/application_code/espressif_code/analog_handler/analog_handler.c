@@ -1,7 +1,7 @@
 #include "analog_handler.h"
 #include "analog_handler_static.h"
 #include "analog_info.h"
-
+#include "rtc_config.h"
 
 #include "task_config.h"
 #include "driver/adc.h"
@@ -137,6 +137,7 @@ void analog_handler_task(void * pvParameters){
                 if(analog_handler_compare(range, an01_last_read, adc_reading_an01)){
                     an01_last_read = adc_reading_an01;
                     mqtt_msg.status = an01_last_read;
+                    mqtt_msg.timestamp = rtc_config_get_time();
                     snprintf(mqtt_msg.name, 10, "%s", AN01_NAME);
                     queue_conf_send_mqtt(mqtt_msg);
                 }
@@ -146,6 +147,7 @@ void analog_handler_task(void * pvParameters){
                 if(analog_handler_compare(range, an02_last_read, adc_reading_an02)){
                     an02_last_read = adc_reading_an02;          
                     mqtt_msg.status = an02_last_read;
+                    mqtt_msg.timestamp = rtc_config_get_time();
                     snprintf(mqtt_msg.name, 10, "%s", AN02_NAME);          
                     queue_conf_send_mqtt(mqtt_msg);
                 }
@@ -155,6 +157,7 @@ void analog_handler_task(void * pvParameters){
                 if(analog_handler_compare(range, an03_last_read, adc_reading_an03)){
                     an03_last_read = adc_reading_an03;
                     mqtt_msg.status = an03_last_read;
+                    mqtt_msg.timestamp = rtc_config_get_time();
                     snprintf(mqtt_msg.name, 10, "%s", AN03_NAME);          
                     queue_conf_send_mqtt(mqtt_msg);
                 }
@@ -164,6 +167,7 @@ void analog_handler_task(void * pvParameters){
                 if(analog_handler_compare(range, an04_last_read, adc_reading_an04)){
                     an04_last_read = adc_reading_an04;
                     mqtt_msg.status = an04_last_read;
+                    mqtt_msg.timestamp = rtc_config_get_time();
                     snprintf(mqtt_msg.name, 10, "%s", AN04_NAME);          
                     queue_conf_send_mqtt(mqtt_msg);
                 }
@@ -173,6 +177,7 @@ void analog_handler_task(void * pvParameters){
                 if(analog_handler_compare(range, an05_last_read, adc_reading_an05)){
                     an05_last_read = adc_reading_an05;
                     mqtt_msg.status = an05_last_read;
+                    mqtt_msg.timestamp = rtc_config_get_time();
                     snprintf(mqtt_msg.name, 10, "%s", AN05_NAME);          
                     queue_conf_send_mqtt(mqtt_msg);
                 }
@@ -182,6 +187,7 @@ void analog_handler_task(void * pvParameters){
                 if(analog_handler_compare(range, an06_last_read, adc_reading_an06)){
                     an06_last_read = adc_reading_an06;
                     mqtt_msg.status = an06_last_read;
+                    mqtt_msg.timestamp = rtc_config_get_time();
                     snprintf(mqtt_msg.name, 10, "%s", AN06_NAME);          
                     queue_conf_send_mqtt(mqtt_msg);
                 }

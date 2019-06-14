@@ -42,7 +42,7 @@ int app_main( void ){
         wifi_config_init();
         //ota_client_init();
         gpio_handler_init();
-        //analog_handler_init();
+        analog_handler_init();
         ntp_init();
 
         WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();

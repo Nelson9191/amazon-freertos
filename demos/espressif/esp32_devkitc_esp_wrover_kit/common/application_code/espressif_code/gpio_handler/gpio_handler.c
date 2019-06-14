@@ -97,35 +97,27 @@ void gpio_handler_read_task(void * pvParameters){
             switch(gpio){
                     case GPIO_DI01:
                         DI_status.DI01 = status;
-                        printf("DI01 -- %d\n", status);
                         break;
                     case GPIO_DI02:
                         DI_status.DI02 = status;
-                        printf("DI02 -- %d\n", status);
                         break;
                     case GPIO_DI03:
                         DI_status.DI03 = status;
-                        printf("DI03 -- %d\n", status);
                         break;
                     case GPIO_DI04:
                         DI_status.DI04 = status;
-                        printf("DI04 -- %d\n", status);
                         break;
                     case GPIO_DI05:
                         DI_status.DI05 = status;
-                        printf("DI05 -- %d\n", status);
                         break;
                     case GPIO_DI06:
                         DI_status.DI06 = status;
-                        printf("DI06 -- %d\n", status);
                         break;
                     case GPIO_DI07:
                         DI_status.DI07 = status;
-                        printf("DI07 -- %d\n", status);
                         break;
                     case GPIO_DI08:
                         DI_status.DI08 = status;
-                        printf("DI08 -- %d\n", status);
                         break;                                                                                                                                                                        
                 }   
             }
@@ -139,7 +131,7 @@ void gpio_handler_read_task(void * pvParameters){
                 DI_reported.DI01 = DI_status.DI01;
                 snprintf(mqtt_msg.name, 10, "%s", DI01_NAME);
                 mqtt_msg.status = DI_reported.DI01;
-                mqtt_msg.timestamp = rtc_config_get_time();                
+                mqtt_msg.timestamp = rtc_config_get_time();
                 queue_conf_send_mqtt(mqtt_msg);
             }
             
