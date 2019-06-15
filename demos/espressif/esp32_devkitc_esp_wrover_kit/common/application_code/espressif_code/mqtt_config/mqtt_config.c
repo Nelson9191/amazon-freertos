@@ -323,7 +323,8 @@ static MQTTBool_t mqtt_config_subs_callback(void * pvUserData, const MQTTPublish
         if(gpio > 0){            
             queue_conf_send_gpio(gpio, value[0] == '0' ? 0 : 1);            
             mqtt_msg.status = value[0] == '0' ? 0 : 1;
-            mqtt_config_report_status(mqtt_msg);
+            mqtt_msg.timestamp = rtc_config_get_time();
+            queue_conf_send_mqtt(mqtt_msg);
         }
 
     }

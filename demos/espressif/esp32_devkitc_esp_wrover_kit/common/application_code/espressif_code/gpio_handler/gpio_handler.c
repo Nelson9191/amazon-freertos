@@ -75,8 +75,8 @@ void gpio_handler_write(uint32_t gpio, uint32_t level){
         case 4: gpio = GPIO_DO04;
                 break;                
     }
-    printf("write gpio-> %d:", gpio);    
-    printf("%d\n", level);
+    //printf("write gpio-> %d:", gpio);    
+    //printf("%d\n", level);
     gpio_set_level(gpio, level);
 }
 
