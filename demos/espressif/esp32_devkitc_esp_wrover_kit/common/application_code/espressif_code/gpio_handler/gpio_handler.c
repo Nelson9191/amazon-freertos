@@ -122,7 +122,7 @@ void gpio_handler_read_task(void * pvParameters){
                 }   
             }
         
-        vTaskDelay(50 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
 
         if(report_change){
             report_change = false;
@@ -258,9 +258,6 @@ void gpio_handler_config_gpios(){
     io_conf.pull_down_en = 0;//disable pull-down mode
     io_conf.pull_up_en = 1;//enable pull-up mode
     gpio_config(&io_conf);
-
-    //change gpio intrrupt type for one pin
-    //gpio_set_intr_type(GPIO_INPUT_IO_0, GPIO_INTR_ANYEDGE);
 
     gpio_install_isr_service(0);//Activa llamada a ISR cuando hay interrupciones
     //gpio_isr_handler_add(GPIO_IN_D36_36, gpio_handler_ISR, (void*) GPIO_IN_D36_36);

@@ -6,7 +6,9 @@
 
 static BaseType_t mqtt_config_connect_to_broker( void );
 
-static BaseType_t mqtt_config_subcribe(void);
+static BaseType_t mqtt_config_subscribe_to_output(void);
+
+static BaseType_t mqtt_config_subscribe_to_heartbeat(void);
 
 /*
  * Función callback cuando el cliente recibe datos del broker     
@@ -23,6 +25,11 @@ static void mqtt_config_delete();
 
 static void mqtt_config_disconnect();
 
+static void mqtt_config_verify_heartbeat();
+
+static void mqtt_config_process_output(const char * cBuffer);
+
+static void mqtt_config_process_heartbeat(const char * cBuffer);
 
 
 #endif

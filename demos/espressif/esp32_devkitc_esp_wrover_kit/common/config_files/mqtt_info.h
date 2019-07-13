@@ -61,6 +61,8 @@ static const char MQTT_BROKER_ENDPOINT[] = "a3b86accc5t4qb.iot.us-east-1.amazona
 
 #define MQTT_PUBLISH_TOPIC      ( ( const uint8_t * ) "input/12345678" )
 
+#define MQTT_HEARTBEAT_TOPIC      ( ( const uint8_t * ) "heartbeat/12345678" )
+
 /* Timeout used when performing MQTT operations that do not need extra time
 to perform a TLS negotiation. */
 #define MQTT_TIMEOUT            pdMS_TO_TICKS( 3000 )
@@ -75,7 +77,7 @@ to perform a TLS negotiation. */
 /**
  * It must be unique per MQTT broker.
  */
-#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "MQTTEcho23" )
+#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "MQTTEcho24" )
 
 /**
  * @brief Dimension of the character array buffers used to hold data (strings in

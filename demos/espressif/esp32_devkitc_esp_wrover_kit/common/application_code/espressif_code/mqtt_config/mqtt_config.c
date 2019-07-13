@@ -23,6 +23,9 @@ static MessageBufferHandle_t xEchoMessageBuffer = NULL;
 static const int JSON_VALUE_LEN = 20;
 QueueHandle_t mqtt_queue;
 
+static uint32_t timestamp_sent;
+static uint32_t timestamp_received;
+
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
@@ -43,6 +46,7 @@ void mqtt_config_task(void * pvParameters){
     const BaseType_t xIterationsInAMinute = 60 / 5;
     TaskHandle_t xEchoingTask = NULL;
     struct MqttMsg mqtt_msg;
+    int ctr_disconnect = 0;
 
     ( void ) pvParameters;
 
@@ -61,6 +65,7 @@ void mqtt_config_task(void * pvParameters){
         goto end_task;
     }
 
+/*
     xReturned = mqtt_config_connect();
 
     if(xReturned != eMQTTAgentSuccess){
@@ -68,35 +73,58 @@ void mqtt_config_task(void * pvParameters){
         goto end_task;
     }
 
-
-    flags_set_mqtt_connected();
-    xReturned = mqtt_config_subcribe();
+    flags_set_mqtt_connected();*/
 
     for(;;){
 
-        if( !flags_is_mqtt_connected() ){
+        if(!flags_is_wifi_connected()){
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            if(ctr_disconnect++ > 12){
+                esp_restart();
+            }
+            continue;
+        }
+
+        if(!flags_is_mqtt_connected()){
             printf("MQTT disconnected\n");
             vTaskDelay(5000 / portTICK_PERIOD_MS);
             xReturned = mqtt_config_connect();
             if(xReturned != eMQTTAgentSuccess){
+                if(ctr_disconnect++ > 12){
+                    esp_restart();
+                }
                 goto br;
             }
+            else{
+                timestamp_received = rtc_config_get_time();
+                ctr_disconnect = 0;
+            }
 
-            xReturned = mqtt_config_subcribe();
+            xReturned = mqtt_config_subscribe_to_output();
             if(xReturned != eMQTTAgentSuccess){
                 mqtt_config_disconnect();
+                ctr_disconnect = 0;
                 goto br;
             }
 
+            xReturned = mqtt_config_subscribe_to_heartbeat();
+            if(xReturned != eMQTTAgentSuccess){
+                mqtt_config_disconnect();
+                ctr_disconnect = 0;
+                goto br;
+            }            
         }
-    br:
+        else{
+            mqtt_config_verify_heartbeat();
+            ctr_disconnect = 0;
+        }
+    
         if(xQueueReceive(mqtt_queue, &mqtt_msg, 0 )){//Lee si hay items en la cola
             mqtt_config_report_status(mqtt_msg);
         } 
-        //mqtt_config_report_status(mqtt_msg);
+br:
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
-
 
 end_task:
     /* Disconnect the client. */
@@ -105,6 +133,7 @@ end_task:
     /* End the demo by deleting all created resources. */
     configPRINTF( ( "MQTT echo demo finished.\r\n" ) );
     configPRINTF( ( "----Demo finished----\r\n" ) );
+    flags_reset_mqtt_connected();
     vMessageBufferDelete( xEchoMessageBuffer );
     vTaskDelete( xEchoingTask );
     vTaskDelete( NULL ); /* Delete this task. */
@@ -125,6 +154,22 @@ void mqtt_config_report_status(struct MqttMsg mqtt_msg){
     xPublishParameters.xQoS = eMQTTQoS1;
     xReturned = MQTT_AGENT_Publish( xMQTTHandle, &( xPublishParameters ), MQTT_TIMEOUT );
 
+}
+
+void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
+    MQTTAgentReturnCode_t xReturned;
+    MQTTAgentPublishParams_t xPublishParameters;
+    char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
+
+    (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
+    printf("-----------%s\n", cDataBuffer);
+    memset(&(xPublishParameters), 0x00, sizeof(xPublishParameters));
+    xPublishParameters.pucTopic = MQTT_HEARTBEAT_TOPIC;
+    xPublishParameters.pvData = cDataBuffer;
+    xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_HEARTBEAT_TOPIC );
+    xPublishParameters.ulDataLength = ( uint32_t ) strlen( cDataBuffer );
+    xPublishParameters.xQoS = eMQTTQoS1;
+    xReturned = MQTT_AGENT_Publish( xMQTTHandle, &( xPublishParameters ), MQTT_TIMEOUT );    
 }
 
 static MQTTAgentReturnCode_t mqtt_config_create( void ){
@@ -208,7 +253,7 @@ static void mqtt_config_disconnect(){
 }
 
 
-static BaseType_t mqtt_config_subcribe(void){
+static BaseType_t mqtt_config_subscribe_to_output(void){
 
     if(!flags_is_mqtt_connected()){
         return -1;
@@ -243,93 +288,68 @@ static BaseType_t mqtt_config_subcribe(void){
     return xReturned;
 }
 
+static BaseType_t mqtt_config_subscribe_to_heartbeat(void){
+
+    if(!flags_is_mqtt_connected()){
+        return -1;
+    }
+    MQTTAgentReturnCode_t xReturned;
+    BaseType_t xReturn;
+    MQTTAgentSubscribeParams_t xSubscribeParams;
+ 
+    xSubscribeParams.pucTopic = MQTT_HEARTBEAT_TOPIC;
+    xSubscribeParams.pvPublishCallbackContext = NULL;
+    xSubscribeParams.pxPublishCallback = mqtt_config_subs_callback;
+    xSubscribeParams.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_HEARTBEAT_TOPIC );
+    xSubscribeParams.xQoS = eMQTTQoS1;
+
+    /* Subscribe to the topic. */
+    xReturned = MQTT_AGENT_Subscribe( xMQTTHandle,
+                                      &xSubscribeParams,
+                                      MQTT_TIMEOUT );
+
+    if( xReturned == eMQTTAgentSuccess )
+    {
+        configPRINTF( ( "MQTT Echo demo subscribed to %s\r\n", MQTT_HEARTBEAT_TOPIC ) );
+        xReturn = pdPASS;
+    }
+    else
+    {
+        configPRINTF( ( "ERROR:  MQTT Echo demo could not subscribe to %s\r\n", MQTT_SUBSCRIBE_TOPIC ) );
+        xReturn = pdFAIL;
+    }
+
+    return xReturned;
+}
+
 static MQTTBool_t mqtt_config_subs_callback(void * pvUserData, const MQTTPublishData_t * const pxCallbackParams){
     char cBuffer[ MQTT_MAX_DATA_LENGTH];
-    uint32_t ulBytesToCopy = ( MQTT_MAX_DATA_LENGTH - 1 ); /* Bytes to copy initialized to ensure it
-                                                                                   * fits in the buffer. One place is left
-                                                                                   * for NULL terminator. */
-    int i;
-	int r;
-    jsmn_parser p;
-	jsmntok_t t[20]; /* We expect no more than 128 tokens */
-    char value[JSON_VALUE_LEN];
-    struct MqttMsg mqtt_msg;
+    uint32_t ulBytesToCopy = ( MQTT_MAX_DATA_LENGTH - 1 );
 
     /* Remove warnings about the unused parameters. */
     ( void ) pvUserData;
 
+    if(memcmp(pxCallbackParams->pucTopic, MQTT_HEARTBEAT_TOPIC, (size_t)(pxCallbackParams->usTopicLength)) == 0){
+        if( pxCallbackParams->ulDataLength <= ulBytesToCopy ){
+            ulBytesToCopy = pxCallbackParams->ulDataLength;
 
-    /* Don't expect the callback to be invoked for any other topics. */
-    //configASSERT( ( size_t ) ( pxCallbackParams->usTopicLength ) == strlen( ( const char * ) MQTT_SUBSCRIBE_TOPIC ) );
-    //configASSERT( memcmp( pxCallbackParams->pucTopic, MQTT_SUBSCRIBE_TOPIC, ( size_t ) ( pxCallbackParams->usTopicLength ) ) == 0 );
+            memset( cBuffer, 0x00, sizeof( cBuffer ) );
+            memcpy( cBuffer, pxCallbackParams->pvData, ( size_t ) ulBytesToCopy );
 
-    //printf("TOPIC recibo: %s\n", pxCallbackParams->pucTopic);
-    //memcmp(pxCallbackParams->pucTopic, MQTT_SUBSCRIBE_TOPIC, ( size_t ) ( pxCallbackParams->usTopicLength )) ;
-
-    if( pxCallbackParams->ulDataLength <= ulBytesToCopy ){
-        ulBytesToCopy = pxCallbackParams->ulDataLength;
-        
-        memset( cBuffer, 0x00, sizeof( cBuffer ) );
-        memcpy( cBuffer, pxCallbackParams->pvData, ( size_t ) ulBytesToCopy );
-
-        //printf("Data received: %s\n", cBuffer);
-
-        jsmn_init(&p);
-	    r = jsmn_parse(&p, cBuffer, strlen(cBuffer), t, sizeof(t)/sizeof(t[0]));
-	    if (r < 0) {
-		    printf("Failed to parse JSON: %d\n", r);
-		    return 1;
-	    }
-
-        /* Assume the top-level element is an object */
-        if (r < 1 || t[0].type != JSMN_OBJECT) {
-            printf("Object expected\n");
-            return 1;
-        } 
-
-        uint32_t gpio = 0;
-        uint32_t status = 0;
-
-        for (int i = 1; i < r; i++) {
-            memset( value, 0x00, JSON_VALUE_LEN);
-            strncpy(value, cBuffer + t[i+1].start, t[i+1].end-t[i+1].start);
-            if (jsoneq(cBuffer, &t[i], DO01_NAME) == 0) {
-                snprintf(mqtt_msg.name, 10, "%s", DO01_NAME);
-                gpio = 1;
-                i++;                
-            } else if (jsoneq(cBuffer, &t[i], DO02_NAME) == 0) {
-                snprintf(mqtt_msg.name, 10, "%s", DO02_NAME);
-                gpio = 2;
-                i++;
-            } else if (jsoneq(cBuffer, &t[i], DO03_NAME) == 0) {            
-                snprintf(mqtt_msg.name, 10, "%s", DO03_NAME);
-                gpio = 3;
-                i++;
-            } else if (jsoneq(cBuffer, &t[i], DO04_NAME) == 0) {
-                snprintf(mqtt_msg.name, 10, "%s", DO04_NAME);
-                gpio = 4;
-                i++;
-            }else if (jsoneq(cBuffer, &t[i], "hora") == 0) {
-                gpio = 0;
-                i++; 
-                rtc_config_set_time_(value, 0);
-            }else {
-                printf("Unexpected key: %.*s\n", t[i].end-t[i].start,
-                        cBuffer + t[i].start);
-                i++;                        
-            }
-	    }
-
-        if(gpio > 0){            
-            queue_conf_send_gpio(gpio, value[0] == '0' ? 0 : 1);            
-            mqtt_msg.status = value[0] == '0' ? 0 : 1;
-            mqtt_msg.timestamp = rtc_config_get_time();
-            queue_conf_send_mqtt(mqtt_msg);
+            printf("HEARTBEAT\n");
+            mqtt_config_process_heartbeat(cBuffer);
         }
-
     }
-    else{
-        configPRINTF( ( "[WARN]: Dropping received message as it does not fit in the buffer.\r\n" ) );
+    else if(memcmp(pxCallbackParams->pucTopic, MQTT_SUBSCRIBE_TOPIC, (size_t)(pxCallbackParams->usTopicLength)) == 0){
+        if( pxCallbackParams->ulDataLength <= ulBytesToCopy ){
+            ulBytesToCopy = pxCallbackParams->ulDataLength;
+
+            memset( cBuffer, 0x00, sizeof( cBuffer ) );
+            memcpy( cBuffer, pxCallbackParams->pvData, ( size_t ) ulBytesToCopy );
+
+            printf("OUTPUT\n");
+            mqtt_config_process_output(cBuffer); 
+        } 
     }
 
     /* The data was copied into the FreeRTOS message buffer, so the buffer
@@ -397,3 +417,113 @@ typedef enum
  *
  * @see MQTTAgentCallbackParams_t.
  */
+
+
+void mqtt_config_process_heartbeat(const char * cBuffer){
+	int r;
+    jsmn_parser p;
+	jsmntok_t t[20]; /* We expect no more than 128 tokens */
+    char value[JSON_VALUE_LEN];
+    struct MqttMsg mqtt_msg;
+
+    printf("****** %s\n", cBuffer);
+    jsmn_init(&p);
+    r = jsmn_parse(&p, cBuffer, strlen(cBuffer), t, sizeof(t)/sizeof(t[0]));
+    if (r < 0) {
+        printf("Failed to parse JSON: %d\n", r);
+        return 1;
+    }
+
+
+    /* Assume the top-level element is an object */
+    if (r < 1 || t[0].type != JSMN_OBJECT) {
+        printf("Object expected\n");
+        return 1;
+    }
+
+    for (int i = 1; i < r; i++) {
+        memset( value, 0x00, JSON_VALUE_LEN);
+        strncpy(value, cBuffer + t[i+1].start, t[i+1].end-t[i+1].start);
+        if (jsoneq(cBuffer, &t[i], "timestamp") == 0) {
+            if(sscanf(value, "%u", &timestamp_received) == 1){
+            
+            }
+            break;
+        }
+    }     
+}
+
+void mqtt_config_process_output(const char * cBuffer){
+	int r;
+    jsmn_parser p;
+	jsmntok_t t[20]; /* We expect no more than 128 tokens */
+    char value[JSON_VALUE_LEN];
+    struct MqttMsg mqtt_msg;
+
+    uint32_t gpio = 0;
+    uint32_t status = 0;
+
+    jsmn_init(&p);
+    r = jsmn_parse(&p, cBuffer, strlen(cBuffer), t, sizeof(t)/sizeof(t[0]));
+    if (r < 0) {
+        printf("Failed to parse JSON: %d\n", r);
+        return 1;
+    }
+
+    /* Assume the top-level element is an object */
+    if (r < 1 || t[0].type != JSMN_OBJECT) {
+        printf("Object expected\n");
+        return 1;
+    } 
+
+    for (int i = 1; i < r; i++) {
+        memset( value, 0x00, JSON_VALUE_LEN);
+        strncpy(value, cBuffer + t[i+1].start, t[i+1].end-t[i+1].start);
+        if (jsoneq(cBuffer, &t[i], DO01_NAME) == 0) {
+            snprintf(mqtt_msg.name, 10, "%s", DO01_NAME);
+            gpio = 1;
+            i++;                
+        } else if (jsoneq(cBuffer, &t[i], DO02_NAME) == 0) {
+            snprintf(mqtt_msg.name, 10, "%s", DO02_NAME);
+            gpio = 2;
+            i++;
+        } else if (jsoneq(cBuffer, &t[i], DO03_NAME) == 0) {            
+            snprintf(mqtt_msg.name, 10, "%s", DO03_NAME);
+            gpio = 3;
+            i++;
+        } else if (jsoneq(cBuffer, &t[i], DO04_NAME) == 0) {
+            snprintf(mqtt_msg.name, 10, "%s", DO04_NAME);
+            gpio = 4;
+            i++;
+        }else if (jsoneq(cBuffer, &t[i], "hora") == 0) {
+            gpio = 0;
+            i++; 
+            rtc_config_set_time_(value, 0);
+        }else {
+            printf("Unexpected key: %.*s\n", t[i].end-t[i].start,
+                    cBuffer + t[i].start);
+            i++;                        
+        }
+    }
+
+    if(gpio > 0){            
+        queue_conf_send_gpio(gpio, value[0] == '0' ? 0 : 1);            
+        mqtt_msg.status = value[0] == '0' ? 0 : 1;
+        mqtt_msg.timestamp = rtc_config_get_time();
+        queue_conf_send_mqtt(mqtt_msg);
+    }
+}
+
+void mqtt_config_verify_heartbeat(){
+    uint32_t curr_timestamp = rtc_config_get_time();
+
+    if(curr_timestamp - timestamp_sent > 60){ // Envia heartbeat cada 60 segundos
+        timestamp_sent = curr_timestamp;
+        mqtt_config_send_heartbeat(timestamp_sent);
+    }
+
+    if( true || ((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > 240)) ){ // Reiniciar
+        printf("Deberia reiniciar ahora\n");
+        esp_restart();
+    }
+}
