@@ -522,7 +522,7 @@ void mqtt_config_verify_heartbeat(){
         mqtt_config_send_heartbeat(timestamp_sent);
     }
 
-    if( true || ((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > 240)) ){ // Reiniciar
+    if((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > 240)){ // Reiniciar
         printf("Deberia reiniciar ahora\n");
         esp_restart();
     }
