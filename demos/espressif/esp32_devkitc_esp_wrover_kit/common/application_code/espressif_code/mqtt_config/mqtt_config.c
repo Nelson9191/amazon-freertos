@@ -50,13 +50,13 @@ void mqtt_config_task(void * pvParameters){
 
     ( void ) pvParameters;
 
-    for(;;){
+/*     for(;;){
         if(flags_is_wifi_connected()){
             break;
         }
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
+    } */
 
     /* Create the MQTT client object and connect it to the MQTT broker. */
     xReturned = mqtt_config_create();
@@ -77,6 +77,9 @@ void mqtt_config_task(void * pvParameters){
 
     for(;;){
 
+        if(ctr_disconnect)
+            printf("DISCONNECT: %d\n", ctr_disconnect);
+            
         if(!flags_is_wifi_connected()){
             vTaskDelay(5000 / portTICK_PERIOD_MS);
             if(ctr_disconnect++ > 12){
