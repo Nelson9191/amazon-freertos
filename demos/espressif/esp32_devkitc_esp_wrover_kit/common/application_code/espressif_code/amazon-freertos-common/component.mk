@@ -21,14 +21,16 @@ COMPONENT_SRCDIRS := $(AMAZON_FREERTOS_LIB_DIR)/mqtt \
         $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-TCP/source/portable/NetworkInterface/esp32 \
         $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-POSIX/source \
         $(AMAZON_FREERTOS_LIB_DIR)/third_party/jsmn \
-        $(AMAZON_FREERTOS_LIB_DIR)/third_party/tinycbor
+        $(AMAZON_FREERTOS_LIB_DIR)/third_party/tinycbor \
+        $(AMAZON_FREERTOS_LIB_DIR)/third_party/mcu_vendor/espressif/esp-idf/components/driver/include/driver
 
 COMPONENT_ADD_INCLUDEDIRS := $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-TCP/include \
                              $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-TCP/source/portable/Compiler/GCC \
                              $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-POSIX/include \
                              $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-POSIX/include/portable/espressif/esp32_devkitc_esp_wrover_kit \
                              $(AMAZON_FREERTOS_LIB_DIR)/third_party/jsmn \
-                             $(AMAZON_FREERTOS_LIB_DIR)/third_party/tinycbor
+                             $(AMAZON_FREERTOS_LIB_DIR)/third_party/tinycbor \
+                             $(AMAZON_FREERTOS_LIB_DIR)/third_party/mcu_vendor/espressif/esp-idf/components/driver/include/driver
 
 COMPONENT_OBJEXCLUDE := $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-TCP/source/portable/BufferManagement/BufferAllocation_1.o \
                         $(AMAZON_FREERTOS_LIB_DIR)/FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_pthread.o \
