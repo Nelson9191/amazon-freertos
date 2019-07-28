@@ -10,6 +10,7 @@ void queue_conf_init(){
     mqtt_queue = xQueueCreate(20, sizeof(struct MqttMsg));
     gpio_queue = xQueueCreate(15, sizeof(struct GPIOMsg));
     wifi_queue = xQueueCreate(5, sizeof(struct WIFIMsg));
+    at_queue = xQueueCreate(5, sizeof(struct ATMsg));
 }
 
 void queue_conf_send_mqtt(struct MqttMsg msg){
@@ -26,3 +27,6 @@ void queue_conf_send_wifi(struct WIFIMsg msg){
     xQueueSendToBack(wifi_queue, &msg, 0);
 }
  
+void queue_conf_send_AT(struct ATMsg msg){
+    xQueueSendToBack(at_queue, &msg, 0);
+}

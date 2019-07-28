@@ -8,6 +8,7 @@
 extern QueueHandle_t gpio_queue;
 extern QueueHandle_t mqtt_queue;
 extern QueueHandle_t wifi_queue;
+extern QueueHandle_t at_queue;
 
 
 struct MqttMsg {
@@ -27,6 +28,13 @@ struct WIFIMsg{
     int status;
 };
 
+struct ATMsg
+{
+    char * buf;
+    uint32_t len;
+};
+
+
 
 void queue_conf_init();
 
@@ -39,6 +47,7 @@ void queue_conf_send_gpio(uint32_t _gpio, uint32_t _status);
 
 void queue_conf_send_wifi(struct WIFIMsg msg);
 
+void queue_conf_send_AT(struct ATMsg msg);
 
 
 #endif

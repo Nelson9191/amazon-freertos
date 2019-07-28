@@ -47,9 +47,10 @@ int app_main( void ){
         ntp_init();
         acua_serial_init();
 
-        /*
+        
         WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();
 
+/*
         if(xWifiStatus == eWiFiSuccess){
             ( void ) xTaskCreate( wifi_config_task,
                                 TASK_WIFI_NAME,
@@ -66,8 +67,8 @@ int app_main( void ){
                                 TASK_MQTT_SUBS_PRIORITY,
                                 NULL );               
             
-        }*/
-        
+        }
+        */
          
     }
     else{
