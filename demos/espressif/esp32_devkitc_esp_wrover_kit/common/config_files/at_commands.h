@@ -1,22 +1,33 @@
 #ifndef _AT_COMMANDS_H_
 #define _AT_COMMANDS_H_
 
+#include "mqtt_config.h"
+
+#define AT                  "AT"
+#define AT_OK               "OK"
+
+#define COPS                "AT+COPS=1,1,\"Avantel\""
+#define COPS_LIST           "AT+COPS?"
+
 //Verify registration status and access technology
 #define CREG                "AT+CREG?"
-#define CREG_OK             "+CREG: 1,1"
+#define CREG_OK             ",1"
 
 //Verify registration status
 #define CGREG               "AT+CGREG?"
-#define CGREG_OK            "+CREG: 0,1"
+#define CGREG_OK            ",1"
 
 //Verify signal
 #define CSQ                 "AT+CSQ"
-#define CSQ_ERROR           "99"
+#define CSQ_ERROR           "99,"
 
 //Activate GPRS
 #define CGATT_ACTIVATE      "AT+CGATT=1"
 #define CGATT               "AT+CGATT?"
 #define CGATT_OK            "+CGATT: 1"
+
+//delecte PDP contexts
+#define GC_DEL              "AT+CGDEL=1"
 
 //Set PDP context
 #define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"lte.avantel.com.co\""
@@ -37,6 +48,37 @@
 #define CGPADDR_FAIL        "0.0.0.0"
 
 
+#define CLIENT_CERT         "clientcert.pem"
+#define CLIENT_KEY          "clientkey.pem"
+#define CA_CERT             "cacert.pem"
+
+#define WRITE_CERT_TEMPLATE "AT+CCERTDOWN="
+#define CERT_LIST           "AT+CCERTLIST"
+
+//Config authentication
+#define SSL_VERSION         "AT+CSSLCFG=\"sslversion\",0,4"
+#define SSL_AUTH_MODE       "AT+CSSLCFG=\"authmode\",0,2"
+#define SSL_CACERT          "AT+CSSLCFG=\"cacert\",0,\"" CA_CERT "\""
+#define SSL_CLIENT_CERT     "AT+CSSLCFG=\"clientcert\",0,\"" CLIENT_CERT "\""
+#define SSL_CLIENT_KEY      "AT+CSSLCFG=\"clientkey\",0,\"" CLIENT_KEY "\"" 
+
+
+//MQTT
+#define MQTT_START          "AT+CMQTTSTART"
+#define MQTT_SET_CLIENT_ID  "AT+CMQTTACCQ=0,\"" MQTT_CLIENT_ID "\",1"
+#define MQTT_SSL_CONFIG     "AT+CMQTTSSLCFG=0,0"
+
+
+#define CFG_WILL_TOPIC      "AT+CMQTTWILLTOPIC=0,31"
+#define WILL_TOPIC          "aws/things/simcom7600_device01/"
+#define CFG_WILL_SMG        "AT+CMQTTWILLMSG=0,17,1"
+#define WILL_MSG            "SIMCom Connected!"
+
+#define _MQTT_ENDPOINT_START "AT+CMQTTCONNECT=0,\"tcp://\""
+#define _MQTT_ENDPOINT_END   "\":8883\",60,1"
+#define MQTT_GET_ENDPOINT()  (_MQTT_ENDPOINT  MQTT_BROKER_ENDPOINT  _MQTT_ENDPOINT_END)
+
+#endif
 /*
 
 AT+CREG AT command gives information about the registration status and access technology of the serving cell.
