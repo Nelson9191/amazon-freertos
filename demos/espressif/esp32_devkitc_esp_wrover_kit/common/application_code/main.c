@@ -20,7 +20,7 @@
 #include "analog_handler.h"
 #include "queue_conf.h"
 #include "ntp.h"
-#include "acua_serial.h"
+#include "acua_gprs.h"
 
 /* Logging Task Defines. */
 #define mainLOGGING_MESSAGE_QUEUE_LENGTH    ( 32 )
@@ -45,7 +45,7 @@ int app_main( void ){
         gpio_handler_init();
         analog_handler_init();
         ntp_init();
-        acua_serial_init();
+        acua_gprs_init();
 
         
         WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();

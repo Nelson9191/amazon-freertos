@@ -30,19 +30,20 @@
 #define GC_DEL              "AT+CGDEL=1"
 
 //Set PDP context
-#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"lte.avantel.com.co\""
+#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"internet.comcel.com.co\""
 #define CGDCONT_LIST        "AT+CGDCONT?"
-#define CGDCONT_OK          "lte.avantel.com.co"
+#define CGDCONT_OK          "internet.comcel.com.co"
 
 //List of contexts
 #define CGACT_LIST          "AT+CGACT?"
-#define CGACT_LIST_OK       "lte.avantel.com.co"
+#define CGACT_LIST_OK       "internet.comcel.com.co"
 
 //Verify that the device is connected
 #define CGACT_LIST          "AT+CGACT?"
 #define SET_CGACT           "AT+CGACT=1,1"
 #define CGACT_OK            ",1"
 
+#define SOCK                "AT+CGSOCKCONT=1,\"IP\",\"internet.comcel.com.co\""
 //Verify IP address
 #define CGPADDR             "AT+CGPADDR=1"
 #define CGPADDR_FAIL        "0.0.0.0"
@@ -51,9 +52,13 @@
 #define CLIENT_CERT         "clientcert.pem"
 #define CLIENT_KEY          "clientkey.pem"
 #define CA_CERT             "cacert.pem"
+#define WRITE_SEQ           ">"
 
 #define WRITE_CERT_TEMPLATE "AT+CCERTDOWN="
 #define CERT_LIST           "AT+CCERTLIST"
+#define DELETE_CACERT       "AT+CCERTDELE=\"cacert.pem\""
+#define DELETE_CERTIFICATE  "AT+CCERTDELE=\"clientcert.pem\""
+#define DELETE_PRIVATE_KEY  "AT+CCERTDELE=\"clientkey.pem\""
 
 //Config authentication
 #define SSL_VERSION         "AT+CSSLCFG=\"sslversion\",0,4"
@@ -65,7 +70,9 @@
 
 //MQTT
 #define MQTT_START          "AT+CMQTTSTART"
-#define MQTT_SET_CLIENT_ID  "AT+CMQTTACCQ=0,\"" MQTT_CLIENT_ID "\",1"
+#define MQTT_START_OK       "CMQTTSTART: 0"
+#define _MQTT_CLIENT_ID_START   "AT+CMQTTACCQ=0,\""
+#define _MQTT_CLIENT_ID_END     "\",1"
 #define MQTT_SSL_CONFIG     "AT+CMQTTSSLCFG=0,0"
 
 
@@ -74,9 +81,20 @@
 #define CFG_WILL_SMG        "AT+CMQTTWILLMSG=0,17,1"
 #define WILL_MSG            "SIMCom Connected!"
 
-#define _MQTT_ENDPOINT_START "AT+CMQTTCONNECT=0,\"tcp://\""
-#define _MQTT_ENDPOINT_END   "\":8883\",60,1"
-#define MQTT_GET_ENDPOINT()  (_MQTT_ENDPOINT  MQTT_BROKER_ENDPOINT  _MQTT_ENDPOINT_END)
+#define _MQTT_ENDPOINT_START "AT+CMQTTCONNECT=0,\"tcp://"
+#define _MQTT_ENDPOINT_END   ":8883\",60,1"
+//#define MQTT_GET_ENDPOINT()  (_MQTT_ENDPOINT  MQTT_BROKER_ENDPOINT  _MQTT_ENDPOINT_END)
+#define MQTT_CONNECT_OK         "CMQTTCONNECT: 0,0"
+
+#define SUBSCRIBE_TEMPLATE      "AT+CMQTTSUBTOPIC=0,"
+#define PUBLISH_TEMPLATE        "AT+CMQTTTOPIC=0,"
+#define PAYLOAD_TEMPLATE        "AT+CMQTTPAYLOAD=0,"
+#define PUBLISH                 "AT+CMQTTPUB=0,1,60"
+#define PUBLISH_OK              "CMQTTPUB: 0,0"
+
+#define MQTT_DISCONNECT         "AT+CMQTTDISC=0, 120"
+#define MQTT_RELEASE            "AT+CMQTTREL=0"
+#define MQTT_STOP               "AT+CMQTTSTOP"
 
 #endif
 /*

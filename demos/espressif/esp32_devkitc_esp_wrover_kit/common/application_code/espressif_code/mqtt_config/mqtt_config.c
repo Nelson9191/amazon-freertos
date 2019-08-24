@@ -150,7 +150,7 @@ void mqtt_config_report_status(struct MqttMsg mqtt_msg){
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"parameter\": \"%s\", \"value\": %d, \"date\": %u, \"connection\":true}", mqtt_msg.name, mqtt_msg.status , mqtt_msg.timestamp);
     printf("%s\n", cDataBuffer);
     memset(&(xPublishParameters), 0x00, sizeof(xPublishParameters));
-    xPublishParameters.pucTopic = MQTT_PUBLISH_TOPIC;
+    xPublishParameters.pucTopic = ( const uint8_t * )MQTT_PUBLISH_TOPIC;
     xPublishParameters.pvData = cDataBuffer;
     xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_PUBLISH_TOPIC );
     xPublishParameters.ulDataLength = ( uint32_t ) strlen( cDataBuffer );
@@ -167,7 +167,7 @@ void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
     printf("-----------%s\n", cDataBuffer);
     memset(&(xPublishParameters), 0x00, sizeof(xPublishParameters));
-    xPublishParameters.pucTopic = MQTT_HEARTBEAT_TOPIC;
+    xPublishParameters.pucTopic = ( const uint8_t * )MQTT_HEARTBEAT_TOPIC;
     xPublishParameters.pvData = cDataBuffer;
     xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_HEARTBEAT_TOPIC );
     xPublishParameters.ulDataLength = ( uint32_t ) strlen( cDataBuffer );
@@ -266,7 +266,7 @@ static BaseType_t mqtt_config_subscribe_to_output(void){
     MQTTAgentSubscribeParams_t xSubscribeParams;
     //printf("TOPIC: %s\n", MQTT_SUBSCRIBE_TOPIC);
     /* Setup subscribe parameters to subscribe to MQTT_SUBSCRIBE_TOPIC topic. */
-    xSubscribeParams.pucTopic = MQTT_SUBSCRIBE_TOPIC;
+    xSubscribeParams.pucTopic = ( const uint8_t * )MQTT_SUBSCRIBE_TOPIC;
     xSubscribeParams.pvPublishCallbackContext = NULL;
     xSubscribeParams.pxPublishCallback = mqtt_config_subs_callback;
     xSubscribeParams.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_SUBSCRIBE_TOPIC );
@@ -300,7 +300,7 @@ static BaseType_t mqtt_config_subscribe_to_heartbeat(void){
     BaseType_t xReturn;
     MQTTAgentSubscribeParams_t xSubscribeParams;
  
-    xSubscribeParams.pucTopic = MQTT_HEARTBEAT_TOPIC;
+    xSubscribeParams.pucTopic = ( const uint8_t * )MQTT_HEARTBEAT_TOPIC;
     xSubscribeParams.pvPublishCallbackContext = NULL;
     xSubscribeParams.pxPublishCallback = mqtt_config_subs_callback;
     xSubscribeParams.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_HEARTBEAT_TOPIC );
