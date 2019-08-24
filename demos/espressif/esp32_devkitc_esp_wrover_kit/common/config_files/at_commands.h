@@ -62,7 +62,7 @@
 
 //Config authentication
 #define SSL_VERSION         "AT+CSSLCFG=\"sslversion\",0,4"
-#define SSL_AUTH_MODE       "AT+CSSLCFG=\"authmode\",0,2"
+#define SSL_AUTH_MODE       "AT+CSSLCFG=\"authmode\",0,3"
 #define SSL_CACERT          "AT+CSSLCFG=\"cacert\",0,\"" CA_CERT "\""
 #define SSL_CLIENT_CERT     "AT+CSSLCFG=\"clientcert\",0,\"" CLIENT_CERT "\""
 #define SSL_CLIENT_KEY      "AT+CSSLCFG=\"clientkey\",0,\"" CLIENT_KEY "\"" 
@@ -87,6 +87,8 @@
 #define MQTT_CONNECT_OK         "CMQTTCONNECT: 0,0"
 
 #define SUBSCRIBE_TEMPLATE      "AT+CMQTTSUBTOPIC=0,"
+#define SUBSCRIBE               "AT+CMQTTSUB=0"
+#define SUBSCRIBE_OK            "+CMQTTSUB: 0,0"
 #define PUBLISH_TEMPLATE        "AT+CMQTTTOPIC=0,"
 #define PAYLOAD_TEMPLATE        "AT+CMQTTPAYLOAD=0,"
 #define PUBLISH                 "AT+CMQTTPUB=0,1,60"

@@ -432,7 +432,7 @@ bool acua_gprs_start_mqtt(){
     vTaskDelay(500 / portTICK_PERIOD_MS);    
     
     snprintf(buff, 200, "%s%s%s", _MQTT_ENDPOINT_START, MQTT_BROKER_ENDPOINT, _MQTT_ENDPOINT_END);
-    ok &= acua_gprs_send_command(buff, AT_OK, TOO_LONG_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, LONG_DELAY, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
     
     free(buff);
@@ -454,6 +454,9 @@ bool acua_gprs_subscribe(){
 
     snprintf(buff, 200, "%s", MQTT_SUBSCRIBE_TOPIC);
     ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    ok &= acua_gprs_send_command(SUBSCRIBE, SUBSCRIBE_OK, SHORT_DELAY, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     free(buff);
@@ -505,17 +508,7 @@ bool acua_gprs_publish(const char * msg){
         return false;
     }
 
-    snprintf(buff, 200, "%s", msg);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-
-    if(!ok){
-        free(buff);
-        return false;
-    }
-
-    snprintf(buff, 200, "%s", PUBLISH);
-    ok &= acua_gprs_send_command(buff, PUBLISH_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(PUBLISH, PUBLISH_OK, SHORT_DELAY, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);                    
 
     free(buff);

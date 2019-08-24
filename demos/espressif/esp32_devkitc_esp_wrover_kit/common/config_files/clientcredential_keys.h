@@ -147,7 +147,7 @@
 "snSZEzuB8fafW0JRU0DkCpgTf+R6CUt8dsjZGJDJvbhkZy4R/pVnR9NFebAt7i8H\n"\
 "lCvPg/uM1j9eyrQoIH6KB5C62W5UrMt9iujyh0Anxrjvv2e7acGB31Wt2lnRcAY7\n"\
 "ph2ECcjTrz0Z2zY/jP0C7Uhca5WZ72viEelYpBWDVqWXERumfObWIlIRhoN2dA==\n"\
-"-----END CERTIFICATE-----"
+"-----END CERTIFICATE-----\n"
 
 
 #define keyCLIENT_PRIVATE_KEY_PEM \
@@ -177,7 +177,7 @@
 "roePawKBgQCuQYgPI1ReQOVMJqC5QX34cGkm6FAmJdH93QiXfuYy2WDAay75Awu+\n"\
 "eJruy6TPcNlTnj6/ufSjZyliieTKaNYs3aUMsikYbD6tLSDJmlnL9skLEpUtCYz1\n"\
 "oy5HTVTUjuxEmqDMyTgp3Ml5mqTcxRieUXZO8jJLYa4zup2VThKv/A==\n"\
-"-----END RSA PRIVATE KEY-----"
+"-----END RSA PRIVATE KEY-----\n"
 
 #define keyCA_CERT_PEM \
 "-----BEGIN CERTIFICATE-----\n"\
@@ -199,6 +199,6 @@
 "o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU\n"\
 "5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy\n"\
 "rqXRfboQnoZsG4q5WTP468SQvvG5\n"\
-"-----END CERTIFICATE-----"
+"-----END CERTIFICATE-----\n"
 
 #endif 
