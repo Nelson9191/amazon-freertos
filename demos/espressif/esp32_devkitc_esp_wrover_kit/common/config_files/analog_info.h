@@ -3,10 +3,10 @@
  
 
 #define NO_OF_SAMPLES       64      //Numero de muestras para promediar valor analógico
-#define ANALOG_RANGE_AN01   50      //Rango de detección de cambio en entrada analógica
-#define ANALOG_RANGE_AN02   50      
+#define ANALOG_RANGE_AN01   40      //Rango de detección de cambio en entrada analógica
+#define ANALOG_RANGE_AN02   40      
 #define ANALOG_RANGE_AN03   50      
-#define ANALOG_RANGE_AN04   50      
+#define ANALOG_RANGE_AN04   8      
 #define ANALOG_RANGE_AN05   50      
 #define ANALOG_RANGE_AN06   50      
 
@@ -33,9 +33,9 @@ Esto para poder leer el valoy y compar con deltas para el disoaro de mensajes/al
 */
 #define USE_AN01   1
 #define USE_AN02   1
-#define USE_AN03   1
+#define USE_AN03   0
 #define USE_AN04   1
-#define USE_AN05   1
-#define USE_AN06   1
+#define USE_AN05   0
+#define USE_AN06   0
 
 #endif

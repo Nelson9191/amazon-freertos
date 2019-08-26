@@ -238,7 +238,7 @@ void gpio_handler_write_task(void * pvParameters){
             gpio_handler_write(gpio_msg.gpio, gpio_msg.status);            
         }
 
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
