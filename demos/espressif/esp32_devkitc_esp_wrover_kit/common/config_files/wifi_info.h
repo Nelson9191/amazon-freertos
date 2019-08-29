@@ -11,8 +11,8 @@
 */
 
 
-#define WIFI_SSID       "ADMON"
-#define WIFI_PASSWORD   "21122114"
+#define WIFI_SSID       "ACUAMATIC1"
+#define WIFI_PASSWORD   "43227577"
 #define WIFI_SECURITY   eWiFiSecurityWPA2 
 
 /* 
