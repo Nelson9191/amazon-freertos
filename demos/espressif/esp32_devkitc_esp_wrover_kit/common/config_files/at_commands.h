@@ -6,6 +6,9 @@
 #define AT                  "AT"
 #define AT_OK               "OK"
 
+#define CPIN             "AT+CPIN?"
+#define CPIN_OK          "+CPIN: READY"
+
 #define COPS                "AT+COPS=1,1,\"Avantel\""
 #define COPS_LIST           "AT+COPS?"
 
@@ -30,20 +33,20 @@
 #define GC_DEL              "AT+CGDEL=1"
 
 //Set PDP context
-#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"internet.comcel.com.co\""
+#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"lte.avantel.com.co\""
 #define CGDCONT_LIST        "AT+CGDCONT?"
-#define CGDCONT_OK          "internet.comcel.com.co"
+#define CGDCONT_OK          "lte.avantel.com.co"
 
 //List of contexts
 #define CGACT_LIST          "AT+CGACT?"
-#define CGACT_LIST_OK       "internet.comcel.com.co"
+#define CGACT_LIST_OK       "lte.avantel.com.co"
 
 //Verify that the device is connected
 #define CGACT_LIST          "AT+CGACT?"
 #define SET_CGACT           "AT+CGACT=1,1"
 #define CGACT_OK            ",1"
 
-#define SOCK                "AT+CGSOCKCONT=1,\"IP\",\"internet.comcel.com.co\""
+#define SOCK                "AT+CGSOCKCONT=1,\"IP\",\"lte.avantel.com.co\""
 //Verify IP address
 #define CGPADDR             "AT+CGPADDR=1"
 #define CGPADDR_FAIL        "0.0.0.0"

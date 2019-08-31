@@ -40,15 +40,21 @@ int app_main( void ){
         queue_conf_init();
         mqtt_config_init();
         rtc_config_init();
-        wifi_config_init();
+        //wifi_config_init();
         //ota_client_init();
         gpio_handler_init();
         //analog_handler_init();
         ntp_init();
-        acua_gprs_init();
+        //acua_gprs_init();
 
+        ( void ) xTaskCreate( mqtt_config_task,
+                            TASK_MQTT_SUBS_NAME,
+                            TASK_MQTT_SUBS_STACK_SIZE,
+                            NULL,
+                            TASK_MQTT_SUBS_PRIORITY,
+                            NULL ); 
         
-        WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();
+        //WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();
 
 /*
         if(xWifiStatus == eWiFiSuccess){
@@ -60,12 +66,7 @@ int app_main( void ){
                                 NULL );
         
             
-            ( void ) xTaskCreate( mqtt_config_task,
-                                TASK_MQTT_SUBS_NAME,
-                                TASK_MQTT_SUBS_STACK_SIZE,
-                                NULL,
-                                TASK_MQTT_SUBS_PRIORITY,
-                                NULL );               
+              
             
         }
         */

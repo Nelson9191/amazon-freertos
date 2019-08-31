@@ -11,7 +11,7 @@ enum eGPRSStatus{
     GPRS_NO_RESPONSE
 };
 
-void acua_gprs_init();
+bool acua_gprs_init();
 
 void acua_gprs_task(void * pvParameters);
 
@@ -47,12 +47,14 @@ bool acua_gprs_start_mqtt();
 
 bool acua_gprs_subscribe();
 
-bool acua_gprs_publish(const char * msg);
+bool acua_gprs_publish(const char * topic, const char * msg);
 
 void acua_gprs_disconnect_and_release();
 
 void acua_gprs_delete_files();
 
 bool acua_gprs_send_file(const char * msg);
+
+bool acua_gprs_config_network();
 
 #endif

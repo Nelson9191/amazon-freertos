@@ -5,6 +5,7 @@
 #include "flags.h"
 #include "queue_conf.h"
 #include "gpio_info.h"
+#include "acua_gprs.h"
 
 #include "string.h"
 #include "stdio.h"
@@ -40,139 +41,69 @@ void mqtt_config_init(void * param){
 }
 
 void mqtt_config_task(void * pvParameters){
-    BaseType_t xX;
-    BaseType_t xReturned;
-    const TickType_t xFiveSeconds = pdMS_TO_TICKS( 5000UL );
-    const BaseType_t xIterationsInAMinute = 60 / 5;
-    TaskHandle_t xEchoingTask = NULL;
+    bool ok = true;
     struct MqttMsg mqtt_msg;
-    int ctr_disconnect = 0;
 
-    ( void ) pvParameters;
+    ok = acua_gprs_init();
 
-/*     for(;;){
-        if(flags_is_wifi_connected()){
-            break;
-        }
-
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    } */
-
-    /* Create the MQTT client object and connect it to the MQTT broker. */
-    xReturned = mqtt_config_create();
-
-    if(xReturned != eMQTTAgentSuccess){
-        goto end_task;
+    if(!ok){
+        //Deberia reiniciar el GPRS
     }
 
-/*
-    xReturned = mqtt_config_connect();
+    ok = acua_gprs_config_network();
 
-    if(xReturned != eMQTTAgentSuccess){
-        mqtt_config_delete();
-        goto end_task;
+    if(!ok){
+        //Definir que deberia hacer
     }
 
-    flags_set_mqtt_connected();*/
+    ok = acua_gprs_start_mqtt();
 
-    for(;;){
+    if(!ok){
+        //Definir que hacer
+    }
 
-        if(ctr_disconnect)
-            printf("DISCONNECT: %d\n", ctr_disconnect);
-            
-        if(!flags_is_wifi_connected()){
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
-            if(ctr_disconnect++ > 12){
-                esp_restart();
-            }
-            continue;
-        }
+    flags_set_mqtt_connected();
+    ok = acua_gprs_subscribe(MQTT_SUBSCRIBE_TOPIC);
 
-        if(!flags_is_mqtt_connected()){
-            printf("MQTT disconnected\n");
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
-            xReturned = mqtt_config_connect();
-            if(xReturned != eMQTTAgentSuccess){
-                if(ctr_disconnect++ > 12){
-                    esp_restart();
-                }
-                goto br;
-            }
-            else{
-                timestamp_received = rtc_config_get_time();
-                ctr_disconnect = 0;
-            }
+    if(!ok)
+    {
+        //Definir que hacer
+    }
 
-            xReturned = mqtt_config_subscribe_to_output();
-            if(xReturned != eMQTTAgentSuccess){
-                mqtt_config_disconnect();
-                ctr_disconnect = 0;
-                goto br;
-            }
+    ok = acua_gprs_subscribe(MQTT_HEARTBEAT_TOPIC);
 
-            xReturned = mqtt_config_subscribe_to_heartbeat();
-            if(xReturned != eMQTTAgentSuccess){
-                mqtt_config_disconnect();
-                ctr_disconnect = 0;
-                goto br;
-            }            
-        }
-        else{
-            mqtt_config_verify_heartbeat();
-            ctr_disconnect = 0;
-        }
+    if(!ok)
+    {
+        //Definir que hacer
+    }
+
+    //ok = acua_gprs_enable_rx_interrupt();
     
+    for(;;){
+        //mqtt_config_verify_heartbeat();
+        //ctr_disconnect = 0;
+
         if(xQueueReceive(mqtt_queue, &mqtt_msg, 0 )){//Lee si hay items en la cola
             mqtt_config_report_status(mqtt_msg);
         } 
-br:
-        vTaskDelay(50 / portTICK_PERIOD_MS);
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 
-end_task:
-    /* Disconnect the client. */
-    ( void ) MQTT_AGENT_Disconnect( xMQTTHandle, MQTT_TIMEOUT );
-
-    /* End the demo by deleting all created resources. */
-    configPRINTF( ( "MQTT echo demo finished.\r\n" ) );
-    configPRINTF( ( "----Demo finished----\r\n" ) );
-    flags_reset_mqtt_connected();
-    vMessageBufferDelete( xEchoMessageBuffer );
-    vTaskDelete( xEchoingTask );
-    vTaskDelete( NULL ); /* Delete this task. */
 }
 
 void mqtt_config_report_status(struct MqttMsg mqtt_msg){
-    MQTTAgentReturnCode_t xReturned;
-    MQTTAgentPublishParams_t xPublishParameters;
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
-
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"parameter\": \"%s\", \"value\": %d, \"date\": %u, \"connection\":true}", mqtt_msg.name, mqtt_msg.status , mqtt_msg.timestamp);
     printf("%s\n", cDataBuffer);
-    memset(&(xPublishParameters), 0x00, sizeof(xPublishParameters));
-    xPublishParameters.pucTopic = ( const uint8_t * )MQTT_PUBLISH_TOPIC;
-    xPublishParameters.pvData = cDataBuffer;
-    xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_PUBLISH_TOPIC );
-    xPublishParameters.ulDataLength = ( uint32_t ) strlen( cDataBuffer );
-    xPublishParameters.xQoS = eMQTTQoS1;
-    xReturned = MQTT_AGENT_Publish( xMQTTHandle, &( xPublishParameters ), MQTT_TIMEOUT );
-
+    acua_gprs_publish(MQTT_PUBLISH_TOPIC, cDataBuffer);
 }
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
-    MQTTAgentReturnCode_t xReturned;
-    MQTTAgentPublishParams_t xPublishParameters;
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
-
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
-    printf("-----------%s\n", cDataBuffer);
-    memset(&(xPublishParameters), 0x00, sizeof(xPublishParameters));
-    xPublishParameters.pucTopic = ( const uint8_t * )MQTT_HEARTBEAT_TOPIC;
-    xPublishParameters.pvData = cDataBuffer;
-    xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_HEARTBEAT_TOPIC );
-    xPublishParameters.ulDataLength = ( uint32_t ) strlen( cDataBuffer );
-    xPublishParameters.xQoS = eMQTTQoS1;
-    xReturned = MQTT_AGENT_Publish( xMQTTHandle, &( xPublishParameters ), MQTT_TIMEOUT );    
+    printf("-----------%s\n", cDataBuffer); 
+    acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);   
 }
 
 static MQTTAgentReturnCode_t mqtt_config_create( void ){
