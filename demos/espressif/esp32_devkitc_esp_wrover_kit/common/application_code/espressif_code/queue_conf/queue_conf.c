@@ -11,10 +11,15 @@ void queue_conf_init(){
     gpio_queue = xQueueCreate(15, sizeof(struct GPIOMsg));
     wifi_queue = xQueueCreate(5, sizeof(struct WIFIMsg));
     at_queue = xQueueCreate(5, sizeof(struct ATMsg));
+    mqttSubsQueue = xQueueCreate(5, sizeof(struct MqttSubsMsg));
 }
 
 void queue_conf_send_mqtt(struct MqttMsg msg){
     xQueueSendToBack(mqtt_queue, &msg, 0);
+}
+
+void queueConfSendMqttSubsMsg(struct MqttSubsMsg msg){
+    xQueueSendToBack(mqttSubsQueue, &msg, 0);
 }
 
 void queue_conf_send_gpio(uint32_t _gpio, uint32_t _status){

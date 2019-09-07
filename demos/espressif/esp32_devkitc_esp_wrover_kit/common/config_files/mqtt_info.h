@@ -77,7 +77,7 @@ to perform a TLS negotiation. */
 /**
  * It must be unique per MQTT broker.
  */
-#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "id_prueba_12" )
+#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "id_prueba_1" )
 
 /**
  * @brief Dimension of the character array buffers used to hold data (strings in

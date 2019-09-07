@@ -23,10 +23,12 @@ static MQTTAgentHandle_t xMQTTHandle = NULL;
 static MessageBufferHandle_t xEchoMessageBuffer = NULL;
 static const int JSON_VALUE_LEN = 20;
 QueueHandle_t mqtt_queue;
+QueueHandle_t mqttSubsQueue;
 
 static uint32_t timestamp_sent;
 static uint32_t timestamp_received;
 
+int daniel = 0;
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
@@ -38,11 +40,17 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 
 void mqtt_config_init(void * param){
     //mqtt_queue = xQueueCreate(5, sizeof(struct MqttMsg));
+    mqttSubsQueue = xQueueCreate(5, sizeof(struct MqttSubsMsg));
 }
 
 void mqtt_config_task(void * pvParameters){
     bool ok = true;
     struct MqttMsg mqtt_msg;
+    struct MqttSubsMsg mqttSubsMsg;
+    {
+        /* data */
+    };
+    
 
     ok = acua_gprs_init();
 
@@ -77,7 +85,7 @@ void mqtt_config_task(void * pvParameters){
         //Definir que hacer
     }
 
-    //ok = acua_gprs_enable_rx_interrupt();
+    //acua_gprs_start_listening();
     
     for(;;){
         //mqtt_config_verify_heartbeat();
@@ -86,6 +94,12 @@ void mqtt_config_task(void * pvParameters){
         if(xQueueReceive(mqtt_queue, &mqtt_msg, 0 )){//Lee si hay items en la cola
             mqtt_config_report_status(mqtt_msg);
         } 
+
+ /*        if(xQueueReceive(mqttSubsQueue, &mqttSubsMsg, 0 )){//Lee si hay items en la cola
+            printf("** %s\n", mqttSubsMsg.msg);
+        }   */
+
+        acua_gprs_recv(false);
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }

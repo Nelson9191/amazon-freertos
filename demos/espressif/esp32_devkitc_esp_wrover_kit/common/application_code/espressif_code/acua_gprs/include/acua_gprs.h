@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include "freertos/FreeRTOS.h"
 
 enum eGPRSStatus{
     GPRS_OK,
@@ -56,5 +57,9 @@ void acua_gprs_delete_files();
 bool acua_gprs_send_file(const char * msg);
 
 bool acua_gprs_config_network();
+
+void acua_gprs_start_listening();
+
+void IRAM_ATTR acua_gprs_interrupt_handle(void *arg);
 
 #endif
