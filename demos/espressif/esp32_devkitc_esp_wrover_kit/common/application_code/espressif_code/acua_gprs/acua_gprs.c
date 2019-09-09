@@ -20,7 +20,7 @@
 #define TICKS_TO_WAIT   20
 
 #define SHORT_DELAY   2000
-#define LONG_DELAY    20000
+#define LONG_DELAY    15000
 #define TOO_LONG_DELAY  65000
 
 uint8_t data_buffer[BUF_SIZE];
@@ -150,7 +150,7 @@ bool acua_gprs_verify_status(){
     response = acua_gprs_send_command(CGATT_ACTIVATE, AT_OK, LONG_DELAY, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);    
 
-    response = acua_gprs_send_command(CGATT, CGATT_OK, LONG_DELAY, true); 
+    response = acua_gprs_send_command(CGATT, CGATT_OK, SHORT_DELAY, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);  
 
     response = acua_gprs_send_command(SET_CGDCONT, AT_OK, SHORT_DELAY, true); 
@@ -204,7 +204,7 @@ bool acua_gprs_send_file(const char * msg){
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    if (acua_gprs_recv(false) == GPRS_NO_RESPONSE){
+    if (acua_gprs_recv(true) == GPRS_NO_RESPONSE){
         return false;
     }
 
@@ -212,25 +212,27 @@ bool acua_gprs_send_file(const char * msg){
 }
 
 
-enum eGPRSStatus acua_gprs_recv(bool loop){
+enum eGPRSStatus acua_gprs_recv(bool waitForResponse){
     int ctr = 0;
     int len;
 
     memset(data_buffer, '\0', BUF_SIZE);
-    while(!acua_gprs_response_available()){
-        if(ctr++ > 100){
-            printf("NO response\n");
-            if(loop){
-                ctr = 0;
-            }
-            else
-            {
-                return GPRS_NO_RESPONSE;
-            }
-            
+
+    if(waitForResponse){
+        while(!acua_gprs_response_available() && ++ctr < 100){
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+    
+    if(!acua_gprs_response_available() && waitForResponse){
+        printf("NO response\n");
+        return GPRS_NO_RESPONSE;
+    }
+    else if(!acua_gprs_response_available())
+    {
+        return GPRS_NO_RESPONSE;
+    }
+    
 
     len = uart_read_bytes(UART_NUM_1, data_buffer, BUF_SIZE, TICKS_TO_WAIT);
     if(len < 0){
@@ -247,12 +249,14 @@ enum eGPRSStatus acua_gprs_recv(bool loop){
 
 enum eGPRSStatus acua_gprs_send_command(const char * command, const char * validation_response, int wait_ms, bool validate_ok){
     if(acua_gprs_write(command) == GPRS_ERROR){
+        printf("HW error\n");
         return GPRS_HARDWARE_ERROR;
     }
 
     vTaskDelay(wait_ms / portTICK_PERIOD_MS);
 
-    if (acua_gprs_recv(false) == GPRS_NO_RESPONSE){
+    if (acua_gprs_recv(true) == GPRS_NO_RESPONSE){
+        printf("HW error2\n");
         return GPRS_HARDWARE_ERROR;
     }
 
@@ -320,7 +324,6 @@ bool acua_gprs_write_client_cert(){
     free(buff);
 
     if(!ok){
-        printf("****ERRORRRR\n");
         return false;
     }
 
@@ -434,7 +437,7 @@ bool acua_gprs_start_mqtt(){
     vTaskDelay(500 / portTICK_PERIOD_MS);
     
     snprintf(buff, 200, "%s%s%s", _MQTT_ENDPOINT_START, MQTT_BROKER_ENDPOINT, _MQTT_ENDPOINT_END);
-    ok &= acua_gprs_send_command(buff, AT_OK, 30000, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, 5000, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
     
     free(buff);
@@ -547,6 +550,7 @@ void acua_gprs_start_listening(){
 
     // register new UART subroutine
 	uart_isr_register(UART_NUM_1,acua_gprs_interrupt_handle, NULL, ESP_INTR_FLAG_IRAM, &handle_console);
+    uart_enable_rx_intr(UART_NUM_1);
 
 }
 
@@ -566,5 +570,10 @@ void IRAM_ATTR acua_gprs_interrupt_handle(void *arg){
 
     // after reading bytes from buffer clear UART interrupt status
     xQueueSendFromISR(mqttSubsQueue, &m, NULL);
+    //uart_flush_input(UART_NUM_1);
     uart_clear_intr_status(UART_NUM_1, UART_RXFIFO_FULL_INT_CLR|UART_RXFIFO_TOUT_INT_CLR);
+}
+
+void acua_gprs_coppy_buffer(char * inputBuffet, int bufLen){
+    snprintf(inputBuffet, bufLen, "%s", data_buffer);
 }

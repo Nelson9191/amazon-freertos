@@ -46,5 +46,6 @@ void mqtt_config_report_status(struct MqttMsg mqtt_msg);
 */
 MQTTAgentHandle_t mqtt_config_get_handler();
 
+void mqtt_config_extract_msg();
 
 #endif

@@ -62,4 +62,6 @@ void acua_gprs_start_listening();
 
 void IRAM_ATTR acua_gprs_interrupt_handle(void *arg);
 
+void acua_gprs_coppy_buffer(char * inputBuffet, int bufLen);
+
 #endif

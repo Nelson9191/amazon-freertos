@@ -14,7 +14,7 @@
 #define TASK_WRITE_GPIO_PRIORITY          2
 
 #define TASK_MQTT_SUBS_NAME          "MQTT Subscribe"
-#define TASK_MQTT_SUBS_STACK_SIZE    2000
+#define TASK_MQTT_SUBS_STACK_SIZE    2500
 #define TASK_MQTT_SUBS_PRIORITY      2
 
 #define TASK_MQTT_PUBL_NAME          "MQTT Publish"

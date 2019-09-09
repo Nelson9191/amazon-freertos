@@ -25,6 +25,9 @@ static const int JSON_VALUE_LEN = 20;
 QueueHandle_t mqtt_queue;
 QueueHandle_t mqttSubsQueue;
 
+static char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
+
+
 static uint32_t timestamp_sent;
 static uint32_t timestamp_received;
 
@@ -85,7 +88,6 @@ void mqtt_config_task(void * pvParameters){
         //Definir que hacer
     }
 
-    //acua_gprs_start_listening();
     
     for(;;){
         //mqtt_config_verify_heartbeat();
@@ -95,29 +97,64 @@ void mqtt_config_task(void * pvParameters){
             mqtt_config_report_status(mqtt_msg);
         } 
 
- /*        if(xQueueReceive(mqttSubsQueue, &mqttSubsMsg, 0 )){//Lee si hay items en la cola
-            printf("** %s\n", mqttSubsMsg.msg);
-        }   */
+        if(acua_gprs_recv(false) == GPRS_OK){
+            acua_gprs_coppy_buffer(cDataBuffer, MQTT_MAX_DATA_LENGTH);
+            //printf("buffer: %s\n", cDataBuffer);
+        
+            if(strstr(cDataBuffer, MQTT_SUBSCRIBE_TOPIC) != NULL){
+                printf("OUTPUT\n");
+                mqtt_config_extract_msg();
+                printf("buffer: %s\n", cDataBuffer);
+                mqtt_config_process_output(cDataBuffer);
+            }
+            else if(strstr(cDataBuffer, MQTT_HEARTBEAT_TOPIC) != NULL){
+                printf("HEARTBEAT\n");
+                mqtt_config_extract_msg();
+                printf("buffer: %s\n", cDataBuffer);
+                //mqtt_config_process_heartbeat(cDataBuffer);
+            }
+        }
 
-        acua_gprs_recv(false);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
 }
 
+void mqtt_config_extract_msg(){
+    char * tmp = malloc(sizeof(char) * MQTT_MAX_DATA_LENGTH);
+    if(tmp == NULL){
+        return;
+    }
+
+    char * p1 = strstr(cDataBuffer, "{");
+    char * p2 = strstr(cDataBuffer, "}");
+
+    if(p1 == NULL || p2 == NULL){
+        free(tmp);
+        return;
+    }
+
+    memset( tmp, 0x00, MQTT_MAX_DATA_LENGTH);
+    memcpy( tmp, p1, ( size_t ) (p2 - p1 + 1) );
+
+    memset( cDataBuffer, 0x00, MQTT_MAX_DATA_LENGTH);
+    memcpy( cDataBuffer, tmp, strlen(tmp) );
+
+    free(tmp);
+}
+
 void mqtt_config_report_status(struct MqttMsg mqtt_msg){
-    char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
-    (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"parameter\": \"%s\", \"value\": %d, \"date\": %u, \"connection\":true}", mqtt_msg.name, mqtt_msg.status , mqtt_msg.timestamp);
-    printf("%s\n", cDataBuffer);
-    acua_gprs_publish(MQTT_PUBLISH_TOPIC, cDataBuffer);
+    char cBuffer[ MQTT_MAX_DATA_LENGTH ];
+    (void)snprintf( cBuffer, MQTT_MAX_DATA_LENGTH, "{\"parameter\": \"%s\", \"value\": %d, \"date\": %u, \"connection\":true}", mqtt_msg.name, mqtt_msg.status , mqtt_msg.timestamp);
+    printf("send -- %s\n", cBuffer);
+    acua_gprs_publish(MQTT_PUBLISH_TOPIC, cBuffer);
 }
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
-    printf("-----------%s\n", cDataBuffer); 
-    acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);   
+    printf("send---%s\n", cDataBuffer); 
+    acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);  
 }
 
 static MQTTAgentReturnCode_t mqtt_config_create( void ){
