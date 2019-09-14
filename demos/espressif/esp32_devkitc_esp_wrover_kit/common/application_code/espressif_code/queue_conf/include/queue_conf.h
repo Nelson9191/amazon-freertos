@@ -9,7 +9,7 @@ extern QueueHandle_t gpio_queue;
 extern QueueHandle_t mqtt_queue;
 extern QueueHandle_t wifi_queue;
 extern QueueHandle_t at_queue;
-extern QueueHandle_t mqttSubsQueue;
+extern QueueHandle_t mqttSerialLogQueue;
 
 struct MqttSubsMsg {
     char msg[200];
@@ -38,6 +38,11 @@ struct ATMsg
     uint32_t len;
 };
 
+struct SerialLogMsg
+{
+    char msg[250];
+};
+
 
 
 void queue_conf_init();
@@ -54,5 +59,7 @@ void queue_conf_send_wifi(struct WIFIMsg msg);
 void queue_conf_send_AT(struct ATMsg msg);
 
 void queueConfSendMqttSubsMsg(struct MqttSubsMsg msg);
+
+void queueConfSendSerialLogMsg(char * msg);
 
 #endif

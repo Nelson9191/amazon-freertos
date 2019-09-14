@@ -59,7 +59,7 @@ static const char MQTT_BROKER_ENDPOINT[] = "a3b86accc5t4qb.iot.us-east-1.amazona
 
 #define MQTT_SUBSCRIBE_TOPIC    ( "output/12345678" )
 
-#define MQTT_PUBLISH_TOPIC      ( "logs/12345678" )
+#define MQTT_PUBLISH_TOPIC      (  ( const uint8_t * ) "logs/12345678" )
 
 #define MQTT_HEARTBEAT_TOPIC      ( "heartbeat/12345678" )
 

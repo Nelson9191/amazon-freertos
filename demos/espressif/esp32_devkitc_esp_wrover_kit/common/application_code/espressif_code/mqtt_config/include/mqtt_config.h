@@ -37,7 +37,7 @@ void mqtt_config_task(void * pvParameters);
  * @Params: - mqtt_msg: mensaje con el gpio y estado
  * @Return:
 */
-void mqtt_config_report_status(struct MqttMsg mqtt_msg);
+void mqtt_config_report_status(char * mqtt_msg);
 
 /**
  * Retorna handler de Mqtt (handler static). Requerido en el OTA agent.

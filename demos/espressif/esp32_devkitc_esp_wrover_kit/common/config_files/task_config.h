@@ -17,10 +17,6 @@
 #define TASK_MQTT_SUBS_STACK_SIZE    2500
 #define TASK_MQTT_SUBS_PRIORITY      2
 
-#define TASK_MQTT_PUBL_NAME          "MQTT Publish"
-#define TASK_MQTT_PUBL_STACK_SIZE    2000
-#define TASK_MQTT_PUBL_PRIORITY      2
-
 #define TASK_ANALOG_NAME            "Analog Read"
 #define TASK_ANALOG_STACK_SIZE      1000
 #define TASK_ANALOG_PRIORITY        2
@@ -31,7 +27,11 @@
 
 #define TASK_MONITOR_NAME            "Memory Monitor"
 #define TASK_MONITOR_STACK_SIZE      2000
-#define TASK_MONITOR_PRIORITY        1
+#define TASK_MONITOR_PRIORITY        3
+
+#define TASK_SERIAL_NAME            "Serial"
+#define TASK_SERIAL_STACK_SIZE      3000
+#define TASK_SERIAL_PRIORITY        2
 
 
 

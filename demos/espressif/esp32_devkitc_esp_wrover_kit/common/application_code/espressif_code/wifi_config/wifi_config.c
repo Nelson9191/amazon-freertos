@@ -304,7 +304,14 @@ void wifi_config_task(void * pvParameters){
     xNetworkParams.ucPasswordLength = sizeof( WIFI_PASSWORD );
     xNetworkParams.xSecurity = WIFI_SECURITY;
 
+    int ctr = 0;
     for(;;){   
+
+        if(ctr++ > 4){
+            ctr = 0;
+            printf("Free memory: %u\n", xPortGetFreeHeapSize());
+            printf("WIFI -- bytes not used: %u\n", uxTaskGetStackHighWaterMark(NULL)*4);
+        }
 
         if(!connected && !connecting){
             ctr_connect = 0;

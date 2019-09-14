@@ -147,7 +147,7 @@
 "oxKlSFDp5fThGYuDYs3KHrJBoilpzwf8okEpvcCKcO3qV62Z2UK1kUyWwej4L44i\n"\
 "B0BZ2Y5NGKFKjPZ7O5BJixiBCrzFJtJOTjoDtr+vmJeMmQn6Pe42gAOq6AGuxZHM\n"\
 "FFlOQUI9uBBBUucFAmYGhALKxkgAMzBtwNqvynpEgtTYpr/iVgYH0ipgnygg\n"\
-"-----END CERTIFICATE-----\n"
+"-----END CERTIFICATE-----"
 
 /*
 "-----BEGIN CERTIFICATE-----\n"\
@@ -199,7 +199,7 @@
 "5P6xAoGBAKUGCvpdsyg/oRSeiKZXByN9XpU44mdTGzmwJoBWMKCAzcB6uy86p3/C\n"\
 "RdFEX/uG9e2WWSMFpS0HhA2F2lzyz11qReSGr4nMoaRDGnpvuzXE0ICcbfJUeWxo\n"\
 "gcpgMJJhBFCVNOKfake2cqR2ysNgAYnud4ZKkcm0eb+/DIdunjAs\n"\
-"-----END RSA PRIVATE KEY-----\n"
+"-----END RSA PRIVATE KEY-----"
 
 /*
 "-----BEGIN RSA PRIVATE KEY-----\n"\
@@ -252,6 +252,6 @@
 "o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU\n"\
 "5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy\n"\
 "rqXRfboQnoZsG4q5WTP468SQvvG5\n"\
-"-----END CERTIFICATE-----\n"
+"-----END CERTIFICATE-----"
 
 #endif 

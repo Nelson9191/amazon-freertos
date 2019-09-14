@@ -4,6 +4,7 @@
 #include "mqtt_info.h"
 #include "queue_conf.h"
 #include "gpio_info.h"
+#include "task_config.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -16,7 +17,7 @@
 #define ECHO_TEST_RTS  UART_PIN_NO_CHANGE
 #define ECHO_TEST_CTS  UART_PIN_NO_CHANGE
 
-#define BUF_SIZE 2000
+#define BUF_SIZE 500
 #define TICKS_TO_WAIT   20
 
 #define SHORT_DELAY   2000
@@ -24,17 +25,15 @@
 #define TOO_LONG_DELAY  65000
 
 uint8_t data_buffer[BUF_SIZE];
+char msg[BUF_SIZE];
+
 QueueHandle_t at_queue;
 
- char rxbuf[100];
 
 //handle for the interrupt
 static intr_handle_t handle_console;
 
-extern int daniel;
-
-extern QueueHandle_t mqttSubsQueue;
-
+QueueHandle_t mqttSerialLogQueue;
 
 uart_config_t uart_config = {
     .baud_rate = 115200,
@@ -51,52 +50,49 @@ bool acua_gprs_init(){
     uart_set_pin(UART_NUM_1, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS);
     uart_driver_install(UART_NUM_1, BUF_SIZE * 2, BUF_SIZE * 2, 0, NULL, 0);
 
+    ( void ) xTaskCreate( acua_gprs_serial_task,
+                            TASK_SERIAL_NAME,
+                            TASK_SERIAL_STACK_SIZE,
+                            NULL,
+                            TASK_SERIAL_PRIORITY,
+                            NULL );    
 
-    //Time for the GPRS to start
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    return true;
+}
 
-    queue_conf_send_gpio(GPIO_ON_GPRS, 1);
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
-    queue_conf_send_gpio(GPIO_ON_GPRS, 0);
+void acua_gprs_serial_task(void * pvParameters){
+    struct SerialLogMsg;
+    int i = 0;
+    int charCtr = 0;
 
-    vTaskDelay(15000 / portTICK_PERIOD_MS);
+    snprintf(msg, BUF_SIZE, "{\"message\":\"");
+    charCtr = strlen(msg);
 
-
-    do{
-        //uart_flush(UART_NUM_1);
-        response = acua_gprs_send_command(CPIN, CPIN_OK, SHORT_DELAY, false, true);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);    
-    } while(response != GPRS_OK);
-
-    bool ok = acua_gprs_validate_certs();
-
-/*     ok ? printf("CERTS OK \n") : printf("CERTS ERROR\n");
-
-    while(1)
-    {
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-
-    } */
-
-    if(!ok){
-        ok = true;
-        acua_gprs_delete_files();
-
-        ok &= acua_gprs_write_client_cert();
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-
-        ok &= acua_gprs_write_client_key();
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-
-        ok &= acua_gprs_write_ca_cert();
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-
-        ok &= acua_gprs_validate_certs();
+    for(;;){
+        if (acua_gprs_recv(false) == GPRS_OK){
+            strncat(msg + charCtr, (char*)data_buffer, BUF_SIZE - charCtr);
+            charCtr = strlen(msg);
+            if(charCtr > BUF_SIZE - 50){
+                strncat(msg + charCtr, "\"}", BUF_SIZE - charCtr);
+                charCtr = 0;
+                queueConfSendSerialLogMsg(msg);
+                printf("envio\n");
+                snprintf(msg, BUF_SIZE, "{\"message\":\"");
+                charCtr = strlen(msg);
+            }
+        }
+        else
+        {
+           // printf("error\n");
+            /* code */
+        }
+        
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        if(i++ > 20){
+            i = 0;
+             acua_gprs_send_command(AT, AT_OK, SHORT_DELAY, false, true);
+        }
     }
-
-    ok &= acua_gprs_configure_ssl();
-
-    return ok;
 }
 
 bool acua_gprs_config_network(){
@@ -252,6 +248,8 @@ enum eGPRSStatus acua_gprs_send_command(const char * command, const char * valid
         printf("HW error\n");
         return GPRS_HARDWARE_ERROR;
     }
+
+    return GPRS_OK;
 
     if(force_wait){
         vTaskDelay(wait_ms / portTICK_PERIOD_MS);
@@ -557,35 +555,6 @@ void acua_gprs_delete_files(){
     acua_gprs_send_command(DELETE_PRIVATE_KEY, AT_OK, SHORT_DELAY, false, true);
 }
 
-void acua_gprs_start_listening(){
-    // release the pre registered UART handler/subroutine
-    uart_isr_free(UART_NUM_1);
-
-    // register new UART subroutine
-	uart_isr_register(UART_NUM_1,acua_gprs_interrupt_handle, NULL, ESP_INTR_FLAG_IRAM, &handle_console);
-    uart_enable_rx_intr(UART_NUM_1);
-
-}
-
-void IRAM_ATTR acua_gprs_interrupt_handle(void *arg){
-    uint16_t rx_fifo_len, status;
-    uint16_t i = 0;
-    struct MqttSubsMsg m;
-
-    status = UART1.int_st.val; // read UART interrupt Status
-    rx_fifo_len = UART1.status.rxfifo_cnt; // read number of bytes in UART buffer
-
-    while(rx_fifo_len){
-    m.msg[i++] = UART1.fifo.rw_byte; // read all bytes
-    rx_fifo_len--;
-    }
-    m.msg[i++] = '\n';
-
-    // after reading bytes from buffer clear UART interrupt status
-    xQueueSendFromISR(mqttSubsQueue, &m, NULL);
-    //uart_flush_input(UART_NUM_1);
-    uart_clear_intr_status(UART_NUM_1, UART_RXFIFO_FULL_INT_CLR|UART_RXFIFO_TOUT_INT_CLR);
-}
 
 void acua_gprs_coppy_buffer(char * inputBuffet, int bufLen){
     snprintf(inputBuffet, bufLen, "%s", data_buffer);
