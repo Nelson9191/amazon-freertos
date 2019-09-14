@@ -115,7 +115,7 @@ void mqtt_config_task(void * pvParameters){
             }
         }
 
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 
 }

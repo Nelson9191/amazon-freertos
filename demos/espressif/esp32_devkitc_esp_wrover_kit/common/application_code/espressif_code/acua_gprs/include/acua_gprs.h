@@ -27,7 +27,7 @@ size_t acua_gprs_AT_len(const char * AT_command);
 
 bool acua_gprs_send(const char * AT_command, const char * AT_ok);
 
-enum eGPRSStatus acua_gprs_send_command(const char * command, const char * validation_response, int wait_ms, bool validate_ok);
+enum eGPRSStatus acua_gprs_send_command(const char * command, const char * validation_response, int wait_ms, bool force_wait, bool validate_ok);
 
 bool acua_gprs_response_available();
 

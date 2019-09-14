@@ -29,6 +29,9 @@
 #define TASK_NTP_STACK_SIZE      1000
 #define TASK_NTP_PRIORITY        2
 
+#define TASK_MONITOR_NAME            "Memory Monitor"
+#define TASK_MONITOR_STACK_SIZE      2000
+#define TASK_MONITOR_PRIORITY        1
 
 
 

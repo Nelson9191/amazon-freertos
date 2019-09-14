@@ -64,7 +64,7 @@ bool acua_gprs_init(){
 
     do{
         //uart_flush(UART_NUM_1);
-        response = acua_gprs_send_command(CPIN, CPIN_OK, SHORT_DELAY, true);
+        response = acua_gprs_send_command(CPIN, CPIN_OK, SHORT_DELAY, false, true);
         vTaskDelay(2000 / portTICK_PERIOD_MS);    
     } while(response != GPRS_OK);
 
@@ -129,47 +129,47 @@ bool acua_gprs_verify_status(){
     bool ok = true;
     enum eGPRSStatus response;
     
-    response = acua_gprs_send_command(AT, AT_OK, SHORT_DELAY, true);
+    response = acua_gprs_send_command(AT, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(1000 / portTICK_PERIOD_MS);    
 
     //Valida estado de GPRS
     do{
-        response = acua_gprs_send_command(CREG, CREG_OK, SHORT_DELAY, true);
+        response = acua_gprs_send_command(CREG, CREG_OK, SHORT_DELAY, false, true);
         vTaskDelay(1000 / portTICK_PERIOD_MS);    
     }while(response == GPRS_ERROR);
 
     //Valida estado de GPRS
     do{
-        response = acua_gprs_send_command(CGREG, CGREG_OK, SHORT_DELAY, true);
+        response = acua_gprs_send_command(CGREG, CGREG_OK, SHORT_DELAY, false, true);
         vTaskDelay(3000 / portTICK_PERIOD_MS);    
     }while(response == GPRS_ERROR);
     
-    response = acua_gprs_send_command(CSQ, CSQ_ERROR, SHORT_DELAY, false); 
+    response = acua_gprs_send_command(CSQ, CSQ_ERROR, SHORT_DELAY, false, false); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
      
-    response = acua_gprs_send_command(CGATT_ACTIVATE, AT_OK, LONG_DELAY, true); 
+    response = acua_gprs_send_command(CGATT_ACTIVATE, AT_OK, LONG_DELAY, true, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);    
 
-    response = acua_gprs_send_command(CGATT, CGATT_OK, SHORT_DELAY, true); 
+    response = acua_gprs_send_command(CGATT, CGATT_OK, SHORT_DELAY, false, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);  
 
-    response = acua_gprs_send_command(SET_CGDCONT, AT_OK, SHORT_DELAY, true); 
+    response = acua_gprs_send_command(SET_CGDCONT, AT_OK, SHORT_DELAY, false, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);    
 
-    response = acua_gprs_send_command(CGDCONT_LIST, CGDCONT_OK, SHORT_DELAY, true); 
+    response = acua_gprs_send_command(CGDCONT_LIST, CGDCONT_OK, SHORT_DELAY, false, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);    
 
-    response = acua_gprs_send_command(CGACT_LIST, CGACT_LIST_OK, SHORT_DELAY, true); 
+    response = acua_gprs_send_command(CGACT_LIST, CGACT_LIST_OK, SHORT_DELAY, false, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    response = acua_gprs_send_command(SET_CGACT, CGACT_OK, LONG_DELAY, true); 
+    response = acua_gprs_send_command(SET_CGACT, CGACT_OK, LONG_DELAY, false, true); 
     vTaskDelay(3000 / portTICK_PERIOD_MS);  
 
     //response = acua_gprs_send_command(SOCK, AT_OK, LONG_DELAY, false);
     //vTaskDelay(2000 / portTICK_PERIOD_MS); 
 
     //IP address
-    response = acua_gprs_send_command(CGPADDR, CGPADDR_FAIL, SHORT_DELAY, false);
+    response = acua_gprs_send_command(CGPADDR, CGPADDR_FAIL, SHORT_DELAY, true, false);
 
     return response == GPRS_OK;
 }
@@ -192,7 +192,7 @@ enum eGPRSStatus acua_gprs_write(const char * msg){
     len = uart_write_bytes(UART_NUM_1, buff, strlen(buff));
     free(buff);
     printf("%s >> written: %d\n", msg, len);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
 
     return len >= 0 ? OK : GPRS_HARDWARE_ERROR;
 }
@@ -243,17 +243,30 @@ enum eGPRSStatus acua_gprs_recv(bool waitForResponse){
         printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), data_buffer, len);
         return GPRS_OK;
     }
-    
-    
 }
 
-enum eGPRSStatus acua_gprs_send_command(const char * command, const char * validation_response, int wait_ms, bool validate_ok){
+enum eGPRSStatus acua_gprs_send_command(const char * command, const char * validation_response, int wait_ms, bool force_wait, bool validate_ok){
+    int ctr = 0;
+
     if(acua_gprs_write(command) == GPRS_ERROR){
         printf("HW error\n");
         return GPRS_HARDWARE_ERROR;
     }
 
-    vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+    if(force_wait){
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+    }
+    else
+    {
+        while(!acua_gprs_response_available() && (ctr ++ < wait_ms)){
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+        }
+    }
+    
+
+    if(!acua_gprs_response_available()){
+        return GPRS_HARDWARE_ERROR;
+    }
 
     if (acua_gprs_recv(true) == GPRS_NO_RESPONSE){
         printf("HW error2\n");
@@ -279,24 +292,24 @@ bool acua_gprs_response_available(){
     if(er < 0){
         printf("error buf\n");
     }
-    return len > 0;
+    return len > 2;
 }
 
 bool acua_gprs_validate_certs(){
     bool ok = true;
     enum eGPRSStatus response;
     
-    response = acua_gprs_send_command(CERT_LIST, CLIENT_CERT, SHORT_DELAY, true);
+    response = acua_gprs_send_command(CERT_LIST, CLIENT_CERT, SHORT_DELAY, false, true);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     ok &= response == GPRS_OK;
 
-    response = acua_gprs_send_command(CERT_LIST, CLIENT_KEY, SHORT_DELAY, true);
+    response = acua_gprs_send_command(CERT_LIST, CLIENT_KEY, SHORT_DELAY, false, true);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     ok &= response == GPRS_OK;
 
-    response = acua_gprs_send_command(CERT_LIST, CA_CERT, SHORT_DELAY, true);
+    response = acua_gprs_send_command(CERT_LIST, CA_CERT, SHORT_DELAY, false, true);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     ok &= response == GPRS_OK;    
@@ -319,7 +332,7 @@ bool acua_gprs_write_client_cert(){
     memset(buff, '\0', sizeof(char) * 2000);
     snprintf(buff, 2000, "%s\"%s\",%d", WRITE_CERT_TEMPLATE, CLIENT_CERT, strlen(keyCLIENT_CERTIFICATE_PEM));
 
-    ok = acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, true) == GPRS_OK;
+    ok = acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     free(buff);
 
@@ -343,7 +356,7 @@ bool acua_gprs_write_client_key(){
     memset(buff, '\0', sizeof(char) * 2000);
     snprintf(buff, 2000, "%s\"%s\",%d", WRITE_CERT_TEMPLATE, CLIENT_KEY, strlen(keyCLIENT_PRIVATE_KEY_PEM));
 
-    ok = acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, true) == GPRS_OK;
+    ok = acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     free(buff);
 
@@ -367,7 +380,7 @@ bool acua_gprs_write_ca_cert(){
     memset(buff, '\0', sizeof(char) * 2000);
     snprintf(buff, 2000, "%s\"%s\",%d", WRITE_CERT_TEMPLATE, CA_CERT, strlen(keyCA_CERT_PEM));
     
-    ok = acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, true) == GPRS_OK;
+    ok = acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     free(buff);
 
@@ -390,23 +403,23 @@ bool acua_gprs_configure_ssl(){
     }
 
     snprintf(buff, 200, "%s", SSL_VERSION);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     snprintf(buff, 200, "%s", SSL_AUTH_MODE);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     snprintf(buff, 200, "%s", SSL_CACERT);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     snprintf(buff, 200, "%s", SSL_CLIENT_CERT);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     snprintf(buff, 200, "%s", SSL_CLIENT_KEY);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
 
     free(buff);
     return ok;
@@ -425,19 +438,19 @@ bool acua_gprs_start_mqtt(){
     }
 
     snprintf(buff, 200, "%s", MQTT_START);
-    ok &= acua_gprs_send_command(buff, MQTT_START_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, MQTT_START_OK, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     snprintf(buff, 200, "%s%s%s", _MQTT_CLIENT_ID_START, MQTT_CLIENT_ID, _MQTT_CLIENT_ID_END);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     snprintf(buff, 200, "%s", MQTT_SSL_CONFIG);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
     
     snprintf(buff, 200, "%s%s%s", _MQTT_ENDPOINT_START, MQTT_BROKER_ENDPOINT, _MQTT_ENDPOINT_END);
-    ok &= acua_gprs_send_command(buff, AT_OK, 5000, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, 5000, true, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
     
     free(buff);
@@ -454,14 +467,14 @@ bool acua_gprs_subscribe(const char * topic){
     }
 
     snprintf(buff, 200, "%s%d,%s", SUBSCRIBE_TEMPLATE, strlen(topic), "1");
-    ok &= acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, true, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     snprintf(buff, 200, "%s", topic);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
-    ok &= acua_gprs_send_command(SUBSCRIBE, SUBSCRIBE_OK, SHORT_DELAY, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(SUBSCRIBE, SUBSCRIBE_OK, SHORT_DELAY, true, true) == GPRS_OK;
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     free(buff);
@@ -478,8 +491,8 @@ bool acua_gprs_publish(const char * topic, const char * msg){
     }
 
     snprintf(buff, 200, "%s%d", PUBLISH_TEMPLATE, strlen(topic));
-    ok &= acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, true) == GPRS_OK;
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    ok &= acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, false, true) == GPRS_OK;
+    //vTaskDelay(500 / portTICK_PERIOD_MS);
 
     if(!ok){
         free(buff);
@@ -487,8 +500,8 @@ bool acua_gprs_publish(const char * topic, const char * msg){
     }
 
     snprintf(buff, 200, "%s", topic);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
+    //vTaskDelay(500 / portTICK_PERIOD_MS);
 
     if(!ok){
         free(buff);
@@ -496,8 +509,8 @@ bool acua_gprs_publish(const char * topic, const char * msg){
     }  
 
     snprintf(buff, 200, "%s%d", PAYLOAD_TEMPLATE, strlen(msg));
-    ok &= acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, true) == GPRS_OK;
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    ok &= acua_gprs_send_command(buff, WRITE_SEQ, SHORT_DELAY, false, true) == GPRS_OK;
+    //vTaskDelay(500 / portTICK_PERIOD_MS);
 
     if(!ok){
         free(buff);
@@ -505,27 +518,27 @@ bool acua_gprs_publish(const char * topic, const char * msg){
     }  
 
     snprintf(buff, 200, "%s", msg);
-    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, true) == GPRS_OK;
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    ok &= acua_gprs_send_command(buff, AT_OK, SHORT_DELAY, false, true) == GPRS_OK;
+    //vTaskDelay(500 / portTICK_PERIOD_MS);
 
     if(!ok){
         free(buff);
         return false;
     }
 
-    ok &= acua_gprs_send_command(PUBLISH, PUBLISH_OK, SHORT_DELAY, true) == GPRS_OK;
-    vTaskDelay(500 / portTICK_PERIOD_MS);                    
+    ok &= acua_gprs_send_command(PUBLISH, PUBLISH_OK, SHORT_DELAY, false, true) == GPRS_OK;
+    //vTaskDelay(500 / portTICK_PERIOD_MS);                    
 
     free(buff);
     return ok;
 }
 
 void acua_gprs_disconnect_and_release(){
-    acua_gprs_send_command(MQTT_DISCONNECT, AT_OK, SHORT_DELAY, true);
+    acua_gprs_send_command(MQTT_DISCONNECT, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(200 / portTICK_PERIOD_MS);
-    acua_gprs_send_command(MQTT_RELEASE, AT_OK, SHORT_DELAY, true);
+    acua_gprs_send_command(MQTT_RELEASE, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(200 / portTICK_PERIOD_MS);    
-    acua_gprs_send_command(MQTT_STOP, AT_OK, SHORT_DELAY, true);
+    acua_gprs_send_command(MQTT_STOP, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(200 / portTICK_PERIOD_MS);    
 }
 
@@ -537,11 +550,11 @@ void acua_gprs_disconnect_and_release(){
 	ESP_ERROR_CHECK(uart_enable_rx_intr(EX_UART_NUM)); */
 
 void acua_gprs_delete_files(){
-    acua_gprs_send_command(DELETE_CACERT, AT_OK, SHORT_DELAY, true);
+    acua_gprs_send_command(DELETE_CACERT, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(500 / portTICK_PERIOD_MS);
-    acua_gprs_send_command(DELETE_CERTIFICATE, AT_OK, SHORT_DELAY, true);
+    acua_gprs_send_command(DELETE_CERTIFICATE, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(500 / portTICK_PERIOD_MS);
-    acua_gprs_send_command(DELETE_PRIVATE_KEY, AT_OK, SHORT_DELAY, true);
+    acua_gprs_send_command(DELETE_PRIVATE_KEY, AT_OK, SHORT_DELAY, false, true);
 }
 
 void acua_gprs_start_listening(){
