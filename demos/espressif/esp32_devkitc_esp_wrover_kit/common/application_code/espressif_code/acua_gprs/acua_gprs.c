@@ -88,10 +88,6 @@ void acua_gprs_serial_task(void * pvParameters){
         }
         
         vTaskDelay(100 / portTICK_PERIOD_MS);
-        if(i++ > 20){
-            i = 0;
-             acua_gprs_send_command(AT, AT_OK, SHORT_DELAY, false, true);
-        }
     }
 }
 
