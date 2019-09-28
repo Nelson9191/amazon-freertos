@@ -43,11 +43,11 @@ int app_main( void ){
         rtc_config_init();
         //wifi_config_init();
         //ota_client_init();
-        //gpio_handler_init();
+        gpio_handler_init();
         //analog_handler_init();
-        ntp_init();
+        //ntp_init();
         //acua_gprs_init();
-        memoryMonitorInit();
+        //memoryMonitorInit();
 
         ( void ) xTaskCreate( mqtt_config_task,
                             TASK_MQTT_SUBS_NAME,

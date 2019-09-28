@@ -99,12 +99,12 @@ void mqtt_config_task(void * pvParameters){
 
         if(acua_gprs_recv(false) == GPRS_OK){
             acua_gprs_coppy_buffer(cDataBuffer, MQTT_MAX_DATA_LENGTH);
-            //printf("buffer: %s\n", cDataBuffer);
+            printf("buffer: %s\n", cDataBuffer);
         
             if(strstr(cDataBuffer, MQTT_SUBSCRIBE_TOPIC) != NULL){
-                printf("OUTPUT\n");
+                //printf("OUTPUT\n");
                 mqtt_config_extract_msg();
-                printf("buffer: %s\n", cDataBuffer);
+                //printf("buffer: %s\n", cDataBuffer);
                 mqtt_config_process_output(cDataBuffer);
             }
             else if(strstr(cDataBuffer, MQTT_HEARTBEAT_TOPIC) != NULL){
@@ -496,6 +496,9 @@ void mqtt_config_process_output(const char * cBuffer){
         mqtt_msg.status = value[0] == '0' ? 0 : 1;
         mqtt_msg.timestamp = rtc_config_get_time();
         queue_conf_send_mqtt(mqtt_msg);
+    }
+    else{
+        printf("NAda que hacer\n");
     }
 }
 

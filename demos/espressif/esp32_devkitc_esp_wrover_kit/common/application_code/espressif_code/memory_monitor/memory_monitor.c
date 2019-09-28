@@ -18,6 +18,6 @@ void memoryMonitorTask(void * pvParameters){
     for(;;){
         //printf("Free memory: \n");
         printf("Free memory: %u\n", xPortGetFreeHeapSize());
-        vTaskDelay(10000 / portTICK_PERIOD_MS);  
+        vTaskDelay(1000 / portTICK_PERIOD_MS);  
     }
 }
