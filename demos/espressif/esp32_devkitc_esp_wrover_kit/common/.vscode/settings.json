@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "queue_conf.h": "c"
+        "queue_conf.h": "c",
+        "typeinfo": "c"
     }
 }

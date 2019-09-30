@@ -95,6 +95,7 @@ void mqtt_config_task(void * pvParameters){
 
         if(xQueueReceive(mqtt_queue, &mqtt_msg, 0 )){//Lee si hay items en la cola
             mqtt_config_report_status(mqtt_msg);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
         } 
 
         if(acua_gprs_recv(false) == GPRS_OK){

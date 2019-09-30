@@ -265,8 +265,10 @@ enum eGPRSStatus acua_gprs_send_command(const char * command, const char * valid
         return GPRS_HARDWARE_ERROR;
     }
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    if (acua_gprs_recv(true) == GPRS_NO_RESPONSE){
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    enum eGPRSStatus resp = acua_gprs_recv(true);
+    if (resp != GPRS_OK){
         printf("HW error2\n");
         return GPRS_HARDWARE_ERROR;
     }

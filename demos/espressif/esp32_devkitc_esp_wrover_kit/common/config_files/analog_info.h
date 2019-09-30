@@ -31,11 +31,11 @@
 Poner en "1" o "0" las entradas analógicas del ESP que se van a conectar.
 Esto para poder leer el valoy y compar con deltas para el disoaro de mensajes/alarmas/acciones.
 */
-#define USE_AN01   1
-#define USE_AN02   1
-#define USE_AN03   1
-#define USE_AN04   1
+#define USE_AN01   0
+#define USE_AN02   0
+#define USE_AN03   0
+#define USE_AN04   0
 #define USE_AN05   1
-#define USE_AN06   1
+#define USE_AN06   0
 
 #endif

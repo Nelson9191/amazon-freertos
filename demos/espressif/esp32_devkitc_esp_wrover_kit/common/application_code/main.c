@@ -36,15 +36,15 @@ int app_main( void ){
     if(SYSTEM_Init() == pdPASS){
         flags_init();
         //spiffs_storage_init();
-        nvs_storage_init();    
-        authentication_init();
+        //nvs_storage_init();    
+        //authentication_init();
         queue_conf_init();
         mqtt_config_init();
         rtc_config_init();
         //wifi_config_init();
         //ota_client_init();
         gpio_handler_init();
-        //analog_handler_init();
+        analog_handler_init();
         //ntp_init();
         //acua_gprs_init();
         //memoryMonitorInit();
