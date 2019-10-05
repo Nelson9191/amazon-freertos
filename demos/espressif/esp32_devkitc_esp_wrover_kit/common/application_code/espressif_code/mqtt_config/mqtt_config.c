@@ -57,7 +57,7 @@ void mqtt_config_task(void * pvParameters){
 
     ok = acua_gprs_init();
 
-    if(!ok){
+    /* if(!ok){
         //Deberia reiniciar el GPRS
     }
 
@@ -88,17 +88,19 @@ void mqtt_config_task(void * pvParameters){
         //Definir que hacer
     }
 
-    
+     */
     for(;;){
         //mqtt_config_verify_heartbeat();
         //ctr_disconnect = 0;
+
+        acua_gprs_send_command("AT", "OK", 2000, false, true);
 
         if(xQueueReceive(mqtt_queue, &mqtt_msg, 0 )){//Lee si hay items en la cola
             mqtt_config_report_status(mqtt_msg);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         } 
 
-        if(acua_gprs_recv(false) == GPRS_OK){
+        /* if(acua_gprs_recv(false) == GPRS_OK){
             acua_gprs_coppy_buffer(cDataBuffer, MQTT_MAX_DATA_LENGTH);
             printf("buffer: %s\n", cDataBuffer);
         
@@ -114,9 +116,9 @@ void mqtt_config_task(void * pvParameters){
                 printf("buffer: %s\n", cDataBuffer);
                 //mqtt_config_process_heartbeat(cDataBuffer);
             }
-        }
+        } */
 
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 
 }
@@ -148,7 +150,7 @@ void mqtt_config_report_status(struct MqttMsg mqtt_msg){
     char cBuffer[ MQTT_MAX_DATA_LENGTH ];
     (void)snprintf( cBuffer, MQTT_MAX_DATA_LENGTH, "{\"parameter\": \"%s\", \"value\": %d, \"date\": %u, \"connection\":true}", mqtt_msg.name, mqtt_msg.status , mqtt_msg.timestamp);
     printf("send -- %s\n", cBuffer);
-    acua_gprs_publish(MQTT_PUBLISH_TOPIC, cBuffer);
+    //acua_gprs_publish(MQTT_PUBLISH_TOPIC, cBuffer);
 }
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
