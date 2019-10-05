@@ -62,6 +62,7 @@ bool acua_gprs_init(){
 
     do{
         //uart_flush(UART_NUM_1);
+        printf("INIT\n")
         response = acua_gprs_send_command(CPIN, CPIN_OK, SHORT_DELAY, false, true);
         vTaskDelay(2000 / portTICK_PERIOD_MS);    
     } while(response != GPRS_OK);
@@ -262,6 +263,7 @@ enum eGPRSStatus acua_gprs_send_command(const char * command, const char * valid
     
 
     if(!acua_gprs_response_available()){
+        printf("GPRS_HARDWARE_ERROR\n");
         return GPRS_HARDWARE_ERROR;
     }
 
