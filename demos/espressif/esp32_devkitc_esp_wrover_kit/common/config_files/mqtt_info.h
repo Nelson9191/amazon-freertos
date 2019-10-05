@@ -57,11 +57,11 @@ static const char MQTT_BROKER_ENDPOINT[] = "a3b86accc5t4qb.iot.us-east-1.amazona
  */
 #define GREENGRASS_DISCOVERY_PORT 8443
 
-#define MQTT_SUBSCRIBE_TOPIC    ( "output/12345678" )
+#define MQTT_SUBSCRIBE_TOPIC    ( "output/5d9901298f359f0bc034ed1b" )
 
-#define MQTT_PUBLISH_TOPIC      ( "input/12345678" )
+#define MQTT_PUBLISH_TOPIC      ( "input/5d9901298f359f0bc034ed1b" )
 
-#define MQTT_HEARTBEAT_TOPIC      ( "heartbeat/12345678" )
+#define MQTT_HEARTBEAT_TOPIC      ( "heartbeat/5d9901298f359f0bc034ed1b" )
 
 /* Timeout used when performing MQTT operations that do not need extra time
 to perform a TLS negotiation. */
@@ -77,7 +77,7 @@ to perform a TLS negotiation. */
 /**
  * It must be unique per MQTT broker.
  */
-#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "id_prueba_1" )
+#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "5d9901298f359f0bc034ed1b" )
 
 /**
  * @brief Dimension of the character array buffers used to hold data (strings in

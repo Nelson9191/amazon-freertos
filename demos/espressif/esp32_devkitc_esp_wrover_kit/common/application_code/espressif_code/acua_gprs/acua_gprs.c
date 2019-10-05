@@ -62,7 +62,7 @@ bool acua_gprs_init(){
 
     do{
         //uart_flush(UART_NUM_1);
-        printf("INIT\n")
+        printf("INIT\n");
         response = acua_gprs_send_command(CPIN, CPIN_OK, SHORT_DELAY, false, true);
         vTaskDelay(2000 / portTICK_PERIOD_MS);    
     } while(response != GPRS_OK);
