@@ -19,7 +19,7 @@
 
 #define TASK_ANALOG_NAME            "Analog Read"
 #define TASK_ANALOG_STACK_SIZE      3500
-#define TASK_ANALOG_PRIORITY        4
+#define TASK_ANALOG_PRIORITY        1
 
 #define TASK_NTP_NAME            "NTP"
 #define TASK_NTP_STACK_SIZE      1000

@@ -67,6 +67,7 @@ bool acua_gprs_init(){
         vTaskDelay(2000 / portTICK_PERIOD_MS);    
     } while(response != GPRS_OK);
 
+
     bool ok = acua_gprs_validate_certs();
 
     if(!ok){
@@ -256,8 +257,8 @@ enum eGPRSStatus acua_gprs_send_command(const char * command, const char * valid
     }
     else
     {
-        while(!acua_gprs_response_available() && (ctr ++ < wait_ms)){
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+        while(!acua_gprs_response_available() && (ctr ++ < wait_ms / 2)){
+            vTaskDelay(20 / portTICK_PERIOD_MS);
         }
     }
     
@@ -288,11 +289,12 @@ bool acua_gprs_verify_ok(const char * resp, const char * pattern_ok){
 }
 
 bool acua_gprs_response_available(){
-    int len = 0;
+    size_t len = 0;
     int er;
-    er = uart_get_buffered_data_len(UART_NUM_1, (size_t *)&len);
+    er = uart_get_buffered_data_len(UART_NUM_1, &len);
     if(er < 0){
         printf("error buf\n");
+        return false;
     }
     return len > 2;
 }
