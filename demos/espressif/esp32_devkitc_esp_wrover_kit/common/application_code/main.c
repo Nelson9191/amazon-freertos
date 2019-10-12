@@ -44,7 +44,7 @@ int app_main( void ){
         //wifi_config_init();
         //ota_client_init();
         gpio_handler_init();
-        analog_handler_init();
+        //analog_handler_init();
         //ntp_init();
         //acua_gprs_init();
         //memoryMonitorInit();

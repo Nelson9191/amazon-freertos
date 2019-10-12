@@ -101,6 +101,20 @@
 #define MQTT_RELEASE            "AT+CMQTTREL=0"
 #define MQTT_STOP               "AT+CMQTTSTOP"
 
+//NTP
+#define NET_OPEN                "AT+NETOPEN"
+#define NET_OPEN_OK             "+NETOPEN: 0"
+#define GET_NTP_IP              "AT+CDNSGIP=\"us.pool.ntp.org\""
+#define CIPOPEN                 "AT+CIPOPEN=1,\"UDP\",,,5000"
+#define CIPOPEN_OK              "+CIPOPEN: 1,0"
+#define CIPSEND                 "AT+CIPSEND=1"// \"UDP\""//,<serverIP>,<serverPort>"
+#define CIPCLOSE                "AT+CIPCLOSE=1"
+#define BUFFER_MODE             "AT+CIPRXGET=1"
+#define BUFFER_AVAILABLE        "AT+CIPRXGET="
+#define RECV_FROM               "RECV FROM"
+#define READ_BUFFER             "AT+CIPRXGET=2,2"
+
+
 #endif
 /*
 

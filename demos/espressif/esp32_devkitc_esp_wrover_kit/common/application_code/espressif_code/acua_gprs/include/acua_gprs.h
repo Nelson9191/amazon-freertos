@@ -60,4 +60,9 @@ bool acua_gprs_config_network();
 
 void acua_gprs_coppy_buffer(char * inputBuffet, int bufLen);
 
+uint8_t * acua_gprs_interchange_message(const char * msg);
+
+bool acua_gprs_get_hour();
+
+
 #endif

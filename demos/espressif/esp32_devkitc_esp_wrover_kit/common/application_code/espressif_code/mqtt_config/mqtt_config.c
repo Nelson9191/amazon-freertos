@@ -67,6 +67,8 @@ void mqtt_config_task(void * pvParameters){
         //Definir que deberia hacer
     }
 
+    acua_gprs_get_hour();
+
     ok = acua_gprs_start_mqtt();
 
     if(!ok){
