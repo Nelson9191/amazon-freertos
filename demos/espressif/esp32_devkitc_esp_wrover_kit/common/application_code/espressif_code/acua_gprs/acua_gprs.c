@@ -6,6 +6,7 @@
 #include "gpio_info.h"
 #include "ntp_info.h"
 #include "ntp.h"
+#include "rtc_config.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -647,23 +648,22 @@ bool acua_gprs_get_hour(){
 
     //acua_gprs_send_buffer(GET_NTP_IP, strlen(GET_NTP_IP), BUFFER_AVAILABLE, SHORT_DELAY, false, true) != GPRS_OK){
     buff_response = acua_gprs_interchange_message(GET_NTP_IP);
-    //buff = buff_response.buff;
 
     if (buff_response.buff == NULL){
-        printf("sale\n");
+        printf("Sin respuesta de ntp.pool.org\n");
         goto exit_get_hour;
     }
 
-    printf("BUFF: %s\n",  buff_response.buff);
+    printf("%s\n",  buff_response.buff);
 
     if (strstr((const char *)buff_response.buff, AT_OK) == NULL){
-        printf("1\n");
+        printf("Falla NTP server\n");
         goto exit_get_hour;
     }
 
     ptr1 = strstr((const char *)buff_response.buff, ".org\",\"");
     if (ptr1 == NULL){
-        printf("2\n");
+        printf("Falla NTP server\n");
         goto exit_get_hour;
     }
 
@@ -671,27 +671,25 @@ bool acua_gprs_get_hour(){
 
     ptr2 = strstr((const char *)ptr1, "\"");
     if (ptr2 == NULL){
-        printf("3\n");
+        printf("Falla NTP server\n");
         goto exit_get_hour;
     }
 
     size_t ip_len = ptr2 - ptr1;
     if (ip_len > IP_LEN){
-        printf("4\n");
+        printf("Falla NTP server\n");
         goto exit_get_hour;
     }
 
     snprintf(NTP_server_ip, ip_len + 1, "%s", ptr1);
+    utils_free_ptr(&(buff_response.buff));
 
     acua_gprs_send_command(BUFFER_MODE, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(200   / portTICK_PERIOD_MS);
     if (acua_gprs_send_command(CIPOPEN, CIPOPEN_OK, SHORT_DELAY, false, true) != GPRS_OK){
-        printf("5\n");
+        printf("Error CIPOPEN\n");
         goto exit_get_hour;
     }
-
-    utils_free_ptr(&(buff_response.buff));
-    buff = NULL;
 
     buff = malloc(sizeof(char) * 100);
     if (buff == NULL){
@@ -703,6 +701,8 @@ bool acua_gprs_get_hour(){
         goto exit_get_hour; 
     }
 
+    utils_free_ptr(&buff);
+
     memset(NTP_FRAME, 0, NTP_FRAME_LEN);
     NTP_FRAME[0] = 0xE3;
     NTP_FRAME[1] = 0;
@@ -713,32 +713,17 @@ bool acua_gprs_get_hour(){
     NTP_FRAME[14]  = 49;
     NTP_FRAME[15]  = 52;
 
-    //uart_flush(UART_NUM_1);
-    //No se valida rta porque se envía una trama que no es imprimible
-
-    utils_free_ptr(&buff);
-
     buff_response = acua_gprs_send_buffer(NTP_FRAME, NTP_FRAME_LEN, SHORT_DELAY, false);
-    //buff = buff_response.buff;
-
     if (buff_response.buff == NULL){
-        printf("sale 2\n");
+        printf("Error CIPSEND\n");
         goto exit_get_hour; 
     }
 
     //buff += NTP_FRAME_LEN;
     ptr1 = strstr((const char*)(buff_response.buff + NTP_FRAME_LEN), IPD_NTP_RESPONSE);
-
     if (ptr1 == NULL){
-        printf("sale 3 \n");
-        for(int i = 0 + NTP_FRAME_LEN; i< buff_response.buff_len; i++){
-            printf("%c\n", buff_response.buff[i]);
-        }
+        printf("+IPD48 no recibido desde el servidor NTP \n");
         goto exit_get_hour; 
-    }
-
-    for(int i = 0; ptr1 - (char*)buff_response.buff + i< buff_response.buff_len; i++){
-        printf("%02x\n", ptr1[i]);
     }
 
     ptr1 = ptr1 + strlen(IPD_NTP_RESPONSE) + 2;
@@ -750,113 +735,17 @@ bool acua_gprs_get_hour(){
     tmp |= ptr1[43] << 0;
 
     tmp = tmp - NTP_1970_TIMESTAMP;
-    printf("captured timestamp: %u\n", tmp);    
-
-//    printf("Buff available: %s\n", buff_response.buff + NTP_FRAME_LEN);
-
+    printf("captured timestamp: %u\n", tmp);
+    rtc_config_set_time(tmp);
     utils_free_ptr(&(buff_response.buff));
-    buff = NULL;
-    
-
-/*
-    printf("LEN IS_ %d\n", len2);
-    if (len2 > NTP_FRAME_LEN){
-        printf("Buf: %s\n", data_buffer + NTP_FRAME_LEN);
-    }
-    else{
-        for(int i = 0; i< len2; i++){
-            printf("%c\n", data_buffer[i]);
-        }
-    }
-    */
-
-    //uart_flush(UART_NUM_1);
-    //uart_write_bytes(UART_NUM_1, NTP_FRAME, NTP_FRAME_LEN);
-
-/*
-    size_t len = 0;
-    uart_get_buffered_data_len(UART_NUM_1, &len);
-
-    if (len <= 0){
-        printf("12\n");
-        goto exit_get_hour;
-    }
-
-    if (buff != NULL){
-        free(buff);
-    }
-
-    buff = malloc(sizeof(char) * len);
-    if (buff == NULL){
-        goto exit_get_hour;
-    }
-
-    memset(buff, 0, len);
-    uart_read_bytes(UART_NUM_1, buff, len, TICKS_TO_WAIT);
-
-    printf("After send: %s and the len is %d\n", buff, len);
-
-    if (strstr((char *)buff, BUFFER_AVAILABLE) != NULL){
-        printf("13\n");
-        int32_t tmp = 0;
-        for(int i = 0; i< len; i++){
-            printf("%c\n", buff[i]);
-        }
-        tmp |= buff[42] << 24;
-        tmp |= buff[43] << 16;
-        tmp |= buff[44] << 8;
-        tmp |= buff[45] << 0;
-
-        tmp = tmp - 2208988800;
-        printf("captured timestamp: %u\n", tmp);
-
-        goto exit_get_hour;
-    }
-
-    free(buff);
-    buff = NULL;
-    */
-    uart_flush(UART_NUM_1);
-
-    vTaskDelay(1000  / portTICK_PERIOD_MS);
-
-    buff_response = acua_gprs_send_buffer(GET_BUFF_LEN, strlen(GET_BUFF_LEN), SHORT_DELAY, false);
-    printf("hello: %s\n", buff_response.buff);
-    utils_free_ptr(&(buff_response.buff));
-    buff = NULL;
-
-    uart_flush(UART_NUM_1);
-    vTaskDelay(1000  / portTICK_PERIOD_MS);
-
-    uart_flush(UART_NUM_1);
-    buff_response = acua_gprs_send_buffer(READ_BUFFER, strlen(READ_BUFFER), SHORT_DELAY, false);
-    buff = buff_response.buff;
-    if (buff_response.buff == NULL){
-        printf("sale 3 \n");
-        goto exit_get_hour;
-    }
-
-    for(int i = 0; i< buff_response.buff_len; i++){
-        printf("%c\n", buff[i]);
-    }
-
-    utils_free_ptr(&(buff_response.buff));
-    buff = NULL;
 
     ok = true;
 
 exit_get_hour:
     acua_gprs_send_command(CIPCLOSE, AT_OK, SHORT_DELAY, false, true);
 
-    if (buff != NULL){
-        free(buff);
-        buff = NULL;
-    }
-
-    if (buff_response.buff != NULL){
-        free(&(buff_response.buff));
-        buff_response.buff = NULL;
-    }
+    utils_free_ptr(&buff);
+    utils_free_ptr(&(buff_response.buff));
 
     return ok;
 }
