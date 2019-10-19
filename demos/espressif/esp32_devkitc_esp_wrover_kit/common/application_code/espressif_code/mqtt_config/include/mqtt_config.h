@@ -6,6 +6,8 @@
 #include "aws_mqtt_agent.h"
 #include "queue_conf.h"
 
+#define HEARTHBEAT_SEND_INTERVAL_SECS   60
+#define HEARTHBEAT_RECV_INTERVAL_SECS   240    
 
 
 /**

@@ -31,8 +31,6 @@ static char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
 static uint32_t timestamp_sent;
 static uint32_t timestamp_received;
 
-int daniel = 0;
-
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
 			strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
@@ -83,13 +81,14 @@ void mqtt_config_task(void * pvParameters){
         //Definir que hacer
     }
 
-    ok = acua_gprs_subscribe(MQTT_HEARTBEAT_TOPIC);
+    //ok = acua_gprs_subscribe(MQTT_HEARTBEAT_TOPIC);
 
     if(!ok)
     {
         //Definir que hacer
     }
 
+    timestamp_received = rtc_config_get_time();
     
     for(;;){
         //mqtt_config_verify_heartbeat();
@@ -114,9 +113,11 @@ void mqtt_config_task(void * pvParameters){
                 printf("HEARTBEAT\n");
                 mqtt_config_extract_msg();
                 printf("buffer: %s\n", cDataBuffer);
-                //mqtt_config_process_heartbeat(cDataBuffer);
+                mqtt_config_process_heartbeat(cDataBuffer);
             }
         }
+
+        mqtt_config_verify_heartbeat();
 
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -149,263 +150,16 @@ void mqtt_config_extract_msg(){
 void mqtt_config_report_status(struct MqttMsg mqtt_msg){
     char cBuffer[ MQTT_MAX_DATA_LENGTH ];
     (void)snprintf( cBuffer, MQTT_MAX_DATA_LENGTH, "{\"parameter\": \"%s\", \"value\": %d, \"date\": %u, \"connection\":true}", mqtt_msg.name, mqtt_msg.status , mqtt_msg.timestamp);
-    printf("send -- %s\n", cBuffer);
+    //printf("send -- %s\n", cBuffer);
     acua_gprs_publish(MQTT_PUBLISH_TOPIC, cBuffer);
 }
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
-    printf("send---%s\n", cDataBuffer); 
+    //printf("send---%s\n", cDataBuffer); 
     acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);  
 }
-
-static MQTTAgentReturnCode_t mqtt_config_create( void ){
-    MQTTAgentReturnCode_t xReturned;
-    BaseType_t xReturn = pdFAIL;
-    MQTTAgentConnectParams_t xConnectParameters =
-    {
-        MQTT_BROKER_ENDPOINT, /* The URL of the MQTT broker to connect to. */
-        MQTT_AGENT_CONNECT_FLAGS,             /* Connection flags. */
-        pdFALSE,                              /* Deprecated. */
-        MQTT_BROKER_PORT,                     /* Port number on which the MQTT broker is listening. Can be overridden by ALPN connection flag. */
-        MQTT_CLIENT_ID,                       /* Client Identifier of the MQTT client. It should be unique per broker. */
-        0,                                    /* The length of the client Id, filled in later as not const. */
-        pdFALSE,                              /* Deprecated. */
-        NULL,                                 /* User data supplied to the callback. Can be NULL. */
-        mqtt_events_callback,                 /* Callback used to report various events. Can be NULL. */
-        NULL,                                 /* Certificate used for secure connection. Can be NULL. */
-        0                                     /* Size of certificate used for secure connection. */
-    };
-
-    /* Check this function has not already been executed. */
-    configASSERT( xMQTTHandle == NULL );
-
-    /* The MQTT client object must be created before it can be used.  The
-     * maximum number of MQTT client objects that can exist simultaneously
-     * is set by mqttconfigMAX_BROKERS. */
-    xReturned = MQTT_AGENT_Create( &xMQTTHandle );
-
-    return xReturned;
-}
-
-static MQTTAgentReturnCode_t mqtt_config_connect(){
-    MQTTAgentReturnCode_t xReturned;
-
-    MQTTAgentConnectParams_t xConnectParameters =
-    {
-        MQTT_BROKER_ENDPOINT, /* The URL of the MQTT broker to connect to. */
-        MQTT_AGENT_CONNECT_FLAGS,             /* Connection flags. */
-        pdFALSE,                              /* Deprecated. */
-        MQTT_BROKER_PORT,                     /* Port number on which the MQTT broker is listening. Can be overridden by ALPN connection flag. */
-        MQTT_CLIENT_ID,                       /* Client Identifier of the MQTT client. It should be unique per broker. */
-        0,                                    /* The length of the client Id, filled in later as not const. */
-        pdFALSE,                              /* Deprecated. */
-        NULL,                                 /* User data supplied to the callback. Can be NULL. */
-        mqtt_events_callback,                 /* Callback used to report various events. Can be NULL. */
-        NULL,                                 /* Certificate used for secure connection. Can be NULL. */
-        0                                     /* Size of certificate used for secure connection. */
-    };
-
-    configPRINTF( ( "MQTT echo attempting to connect to %s.\r\n", MQTT_BROKER_ENDPOINT ) );
-
-    /* Fill in the MQTTAgentConnectParams_t member that is not const,
-    * and therefore could not be set in the initializer (where
-    * xConnectParameters is declared in this function). */
-    
-    xConnectParameters.usClientIdLength = ( uint16_t ) strlen( ( const char * ) MQTT_CLIENT_ID );
-
-    xReturned = MQTT_AGENT_Connect( xMQTTHandle,
-                                    &xConnectParameters,
-                                    MQTT_ECHO_TLS_NEGOTIATION_TIMEOUT );
-    
-
-    if(xReturned == eMQTTAgentSuccess){
-        flags_set_mqtt_connected();
-        printf("MQTT connected\n");
-    }
-    else{
-        printf("MQTT could not connect\n");
-    }
-    return xReturned;
-}
-
-static void mqtt_config_delete(){
-    (void)MQTT_AGENT_Delete( xMQTTHandle );
-    flags_reset_mqtt_connected();
-}
-
-static void mqtt_config_disconnect(){
-    (void) MQTT_AGENT_Disconnect( xMQTTHandle, MQTT_TIMEOUT );
-    flags_reset_mqtt_connected();
-}
-
-
-static BaseType_t mqtt_config_subscribe_to_output(void){
-
-    if(!flags_is_mqtt_connected()){
-        return -1;
-    }
-    MQTTAgentReturnCode_t xReturned;
-    BaseType_t xReturn;
-    MQTTAgentSubscribeParams_t xSubscribeParams;
-    //printf("TOPIC: %s\n", MQTT_SUBSCRIBE_TOPIC);
-    /* Setup subscribe parameters to subscribe to MQTT_SUBSCRIBE_TOPIC topic. */
-    xSubscribeParams.pucTopic = ( const uint8_t * )MQTT_SUBSCRIBE_TOPIC;
-    xSubscribeParams.pvPublishCallbackContext = NULL;
-    xSubscribeParams.pxPublishCallback = mqtt_config_subs_callback;
-    xSubscribeParams.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_SUBSCRIBE_TOPIC );
-    xSubscribeParams.xQoS = eMQTTQoS1;
-
-    /* Subscribe to the topic. */
-    xReturned = MQTT_AGENT_Subscribe( xMQTTHandle,
-                                      &xSubscribeParams,
-                                      MQTT_TIMEOUT );
-
-    if( xReturned == eMQTTAgentSuccess )
-    {
-        configPRINTF( ( "MQTT Echo demo subscribed to %s\r\n", MQTT_SUBSCRIBE_TOPIC ) );
-        xReturn = pdPASS;
-    }
-    else
-    {
-        configPRINTF( ( "ERROR:  MQTT Echo demo could not subscribe to %s\r\n", MQTT_SUBSCRIBE_TOPIC ) );
-        xReturn = pdFAIL;
-    }
-
-    return xReturned;
-}
-
-static BaseType_t mqtt_config_subscribe_to_heartbeat(void){
-
-    if(!flags_is_mqtt_connected()){
-        return -1;
-    }
-    MQTTAgentReturnCode_t xReturned;
-    BaseType_t xReturn;
-    MQTTAgentSubscribeParams_t xSubscribeParams;
- 
-    xSubscribeParams.pucTopic = ( const uint8_t * )MQTT_HEARTBEAT_TOPIC;
-    xSubscribeParams.pvPublishCallbackContext = NULL;
-    xSubscribeParams.pxPublishCallback = mqtt_config_subs_callback;
-    xSubscribeParams.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_HEARTBEAT_TOPIC );
-    xSubscribeParams.xQoS = eMQTTQoS1;
-
-    /* Subscribe to the topic. */
-    xReturned = MQTT_AGENT_Subscribe( xMQTTHandle,
-                                      &xSubscribeParams,
-                                      MQTT_TIMEOUT );
-
-    if( xReturned == eMQTTAgentSuccess )
-    {
-        configPRINTF( ( "MQTT Echo demo subscribed to %s\r\n", MQTT_HEARTBEAT_TOPIC ) );
-        xReturn = pdPASS;
-    }
-    else
-    {
-        configPRINTF( ( "ERROR:  MQTT Echo demo could not subscribe to %s\r\n", MQTT_SUBSCRIBE_TOPIC ) );
-        xReturn = pdFAIL;
-    }
-
-    return xReturned;
-}
-
-static MQTTBool_t mqtt_config_subs_callback(void * pvUserData, const MQTTPublishData_t * const pxCallbackParams){
-    char cBuffer[ MQTT_MAX_DATA_LENGTH];
-    uint32_t ulBytesToCopy = ( MQTT_MAX_DATA_LENGTH - 1 );
-
-    /* Remove warnings about the unused parameters. */
-    ( void ) pvUserData;
-
-    if(memcmp(pxCallbackParams->pucTopic, MQTT_HEARTBEAT_TOPIC, (size_t)(pxCallbackParams->usTopicLength)) == 0){
-        if( pxCallbackParams->ulDataLength <= ulBytesToCopy ){
-            ulBytesToCopy = pxCallbackParams->ulDataLength;
-
-            memset( cBuffer, 0x00, sizeof( cBuffer ) );
-            memcpy( cBuffer, pxCallbackParams->pvData, ( size_t ) ulBytesToCopy );
-
-            printf("HEARTBEAT\n");
-            mqtt_config_process_heartbeat(cBuffer);
-        }
-    }
-    else if(memcmp(pxCallbackParams->pucTopic, MQTT_SUBSCRIBE_TOPIC, (size_t)(pxCallbackParams->usTopicLength)) == 0){
-        if( pxCallbackParams->ulDataLength <= ulBytesToCopy ){
-            ulBytesToCopy = pxCallbackParams->ulDataLength;
-
-            memset( cBuffer, 0x00, sizeof( cBuffer ) );
-            memcpy( cBuffer, pxCallbackParams->pvData, ( size_t ) ulBytesToCopy );
-
-            printf("OUTPUT\n");
-            mqtt_config_process_output(cBuffer); 
-        } 
-    }
-
-    /* The data was copied into the FreeRTOS message buffer, so the buffer
-     * containing the data is no longer required.  Returning eMQTTFalse tells the
-     * MQTT agent that the ownership of the buffer containing the message lies with
-     * the agent and it is responsible for freeing the buffer. */
-    return eMQTTFalse;
-}
-
-MQTTAgentHandle_t mqtt_config_get_handler(){
-    return xMQTTHandle;
-}
-
-static BaseType_t mqtt_events_callback (void * pvUserData, const MQTTAgentCallbackParams_t * const pxCallbackParams){
-    MQTTAgentEvent_t xMQTTEvent = pxCallbackParams->xMQTTEvent;
-    switch(xMQTTEvent){
-        case eMQTTAgentPublish:
-            printf("eMQTTAgentPublish\n");
-            break;
-        case eMQTTAgentDisconnect:
-            flags_reset_mqtt_connected();
-            printf("eMQTTAgentDisconnect\n");
-            break;
-    }
-    return pdTRUE;
-}
-
-/*
-
-Callback
-You can specify an optional callback that is invoked whenever the MQTT agent is disconnected from the broker or whenever 
-a publish message is received from the broker. The received publish message is stored in a buffer taken from the 
-central buffer pool. This message is passed to the callback. This callback runs in the context of the MQTT task and 
-therefore must be quick. If you need to do longer processing, you must take the ownership of the buffer by returning 
-pdTRUE from the callback. You must then return the buffer back to the pool whenever you are done by calling 
-FreeRTOS_Agent_ReturnBuffer.
-
-typedef enum
-{
-    eMQTTAgentPublish,   //< A Publish message was received from the broker. 
-    eMQTTAgentDisconnect //< The connection to the broker got disconnected. 
-} MQTTAgentEvent_t;
-*/
-
-
-/**
- * @brief Signature of the callback registered by the user to get notified of various events.
- *
- * The user can register an optional callback to get notified of various events.
- *
- * @param[in] pvUserData The user data as provided in the connect parameters while connecting.
- * @param[in] pxCallbackParams The event and related data.
- *
- * @return The return value is ignored in all other cases except publish (i.e. eMQTTAgentPublish
- * event):
- * 1. If pdTRUE is returned - The ownership of the buffer passed in the callback (xBuffer
- * in MQTTPublishData_t) lies with the user.
- * 2. If pdFALSE is returned - The ownership of the buffer passed in the callback (xBuffer
- * in MQTTPublishData_t) remains with the library and it is recycled as soon as
- * the callback returns.<br>
- * The user should take the ownership of the buffer containing the received message from the
- * broker by returning pdTRUE from the callback if the user wants to use the buffer after
- * the callback is over. The user should return the buffer whenever done by calling the
- * MQTT_AGENT_ReturnBuffer API.
- *
- * @see MQTTAgentCallbackParams_t.
- */
-
 
 void mqtt_config_process_heartbeat(const char * cBuffer){
 	int r;
@@ -508,13 +262,18 @@ void mqtt_config_process_output(const char * cBuffer){
 void mqtt_config_verify_heartbeat(){
     uint32_t curr_timestamp = rtc_config_get_time();
 
-    if(curr_timestamp - timestamp_sent > 60){ // Envia heartbeat cada 60 segundos
+    if(curr_timestamp - timestamp_sent > HEARTHBEAT_SEND_INTERVAL_SECS){ // Envia heartbeat cada X segundos
         timestamp_sent = curr_timestamp;
+        printf("send heartbeat -----------\n");
         mqtt_config_send_heartbeat(timestamp_sent);
+        printf("heartbeat sent: %d\n", timestamp_sent);
+        printf("last heartbeat received: %d\n", timestamp_received);
     }
 
-    if((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > 240)){ // Reiniciar
-        printf("Deberia reiniciar ahora\n");
+
+    if((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > HEARTHBEAT_RECV_INTERVAL_SECS)){ // Reiniciar
+        //Si han pasado mas de 4 min 
+        printf("Reinicia dispositivo por heartbeat\n");
         esp_restart();
     }
 }

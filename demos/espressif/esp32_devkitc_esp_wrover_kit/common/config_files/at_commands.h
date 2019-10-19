@@ -37,13 +37,13 @@
 /* #define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"lte.avantel.com.co\""
 #define CGDCONT_LIST        "AT+CGDCONT?"
 #define CGDCONT_OK          "lte.avantel.com.co" */
-#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"internet.comcel.com.co\""
+#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"lte.avantel.com.co\""
 #define CGDCONT_LIST        "AT+CGDCONT?"
-#define CGDCONT_OK          "internet.comcel.com.co"
+#define CGDCONT_OK          "lte.avantel.com.co"
 
 //List of contexts
 #define CGACT_LIST          "AT+CGACT?"
-#define CGACT_LIST_OK       "internet.comcel.com.co"
+#define CGACT_LIST_OK       "lte.avantel.com.co"
 
 //Verify that the device is connected
 #define CGACT_LIST          "AT+CGACT?"
