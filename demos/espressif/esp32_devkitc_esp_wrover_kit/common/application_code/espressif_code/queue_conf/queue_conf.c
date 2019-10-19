@@ -7,7 +7,7 @@ static struct WIFIMsg wifi_msg;
 
 
 void queue_conf_init(){
-    mqtt_queue = xQueueCreate(20, sizeof(struct MqttMsg));
+    mqtt_queue = xQueueCreate(100, sizeof(struct MqttMsg));
     gpio_queue = xQueueCreate(15, sizeof(struct GPIOMsg));
     wifi_queue = xQueueCreate(5, sizeof(struct WIFIMsg));
 }
