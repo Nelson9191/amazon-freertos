@@ -9,7 +9,8 @@
 #define CPIN             "AT+CPIN?"
 #define CPIN_OK          "+CPIN: READY"
 
-#define COPS                "AT+COPS=1,1,\"Avantel\""
+//#define COPS                "AT+COPS=1,1,\"Avantel\""
+#define COPS                "AT+COPS=1,1,\"Claro\""
 #define COPS_LIST           "AT+COPS?"
 
 //Verify registration status and access technology
@@ -33,20 +34,22 @@
 #define GC_DEL              "AT+CGDEL=1"
 
 //Set PDP context
-#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"lte.avantel.com.co\""
+/* #define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"lte.avantel.com.co\""
 #define CGDCONT_LIST        "AT+CGDCONT?"
-#define CGDCONT_OK          "lte.avantel.com.co"
+#define CGDCONT_OK          "lte.avantel.com.co" */
+#define SET_CGDCONT         "AT+CGDCONT=1,\"IP\",\"internet.comcel.com.co\""
+#define CGDCONT_LIST        "AT+CGDCONT?"
+#define CGDCONT_OK          "internet.comcel.com.co"
 
 //List of contexts
 #define CGACT_LIST          "AT+CGACT?"
-#define CGACT_LIST_OK       "lte.avantel.com.co"
+#define CGACT_LIST_OK       "internet.comcel.com.co"
 
 //Verify that the device is connected
 #define CGACT_LIST          "AT+CGACT?"
 #define SET_CGACT           "AT+CGACT=1,1"
 #define CGACT_OK            ",1"
 
-#define SOCK                "AT+CGSOCKCONT=1,\"IP\",\"lte.avantel.com.co\""
 //Verify IP address
 #define CGPADDR             "AT+CGPADDR=1"
 #define CGPADDR_FAIL        "0.0.0.0"
@@ -105,14 +108,19 @@
 #define NET_OPEN                "AT+NETOPEN"
 #define NET_OPEN_OK             "+NETOPEN: 0"
 #define GET_NTP_IP              "AT+CDNSGIP=\"us.pool.ntp.org\""
-#define CIPOPEN                 "AT+CIPOPEN=1,\"UDP\",,,5000"
+#define CIPOPEN                 "AT+CIPOPEN=1,\"UDP\",,,5001"
 #define CIPOPEN_OK              "+CIPOPEN: 1,0"
 #define CIPSEND                 "AT+CIPSEND=1"// \"UDP\""//,<serverIP>,<serverPort>"
 #define CIPCLOSE                "AT+CIPCLOSE=1"
-#define BUFFER_MODE             "AT+CIPRXGET=1"
-#define BUFFER_AVAILABLE        "AT+CIPRXGET="
+#define BUFFER_MODE             "AT+CIPRXGET=0"
+#define BUFFER_AVAILABLE        "+CIPRXGET: 1,1"
 #define RECV_FROM               "RECV FROM"
-#define READ_BUFFER             "AT+CIPRXGET=2,2"
+#define READ_BUFFER             "AT+CIPRXGET=3,1,1024"
+#define GET_BUFF_LEN            "AT+CIPRXGET=4,1"
+
+#define NTP                     "AT+CNTP=\"pool.ntp.org\",8,1,2"
+#define NTP2                    "AT+CNTP"
+#define IPD_NTP_RESPONSE        "+IPD48"
 
 
 #endif

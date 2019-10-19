@@ -12,6 +12,11 @@ enum eGPRSStatus{
     GPRS_NO_RESPONSE
 };
 
+struct BuffResponse{
+    uint8_t * buff;
+    size_t buff_len;
+};
+
 bool acua_gprs_init();
 
 void acua_gprs_task(void * pvParameters);
@@ -60,9 +65,9 @@ bool acua_gprs_config_network();
 
 void acua_gprs_coppy_buffer(char * inputBuffet, int bufLen);
 
-uint8_t * acua_gprs_interchange_message(const char * msg);
+struct BuffResponse acua_gprs_interchange_message(const char * msg);
 
 bool acua_gprs_get_hour();
 
-
+struct BuffResponse acua_gprs_send_buffer(const char * buff, size_t buff_len, int wait_ms, bool force_wait);
 #endif

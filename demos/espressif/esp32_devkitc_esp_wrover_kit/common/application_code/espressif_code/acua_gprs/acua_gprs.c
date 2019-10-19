@@ -5,13 +5,17 @@
 #include "queue_conf.h"
 #include "gpio_info.h"
 #include "ntp_info.h"
+#include "ntp.h"
 
 #include "stdio.h"
 #include "string.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "uart.h"
+#include "utils.h"
 
+//#define ECHO_TEST_TXD  GPIO_NUM_17
+//#define ECHO_TEST_RXD  GPIO_NUM_16
 #define ECHO_TEST_TXD  GPIO_NUM_10
 #define ECHO_TEST_RXD  GPIO_NUM_9
 #define ECHO_TEST_RTS  UART_PIN_NO_CHANGE
@@ -25,7 +29,7 @@
 #define TOO_LONG_DELAY  65000
 #define IP_LEN 16
 
-uint8_t data_buffer[IP_LEN];
+uint8_t data_buffer[BUF_SIZE];
 
 char NTP_server_ip[20];
 QueueHandle_t at_queue;
@@ -128,11 +132,13 @@ bool acua_gprs_verify_status(){
     response = acua_gprs_send_command(AT, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(1000 / portTICK_PERIOD_MS);  
 
+/*
     response = acua_gprs_send_command(COPS, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(5000 / portTICK_PERIOD_MS); 
 
     response = acua_gprs_send_command(COPS_LIST, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(1000 / portTICK_PERIOD_MS);     
+    */
 
     //Valida estado de GPRS
     do{
@@ -146,8 +152,10 @@ bool acua_gprs_verify_status(){
         vTaskDelay(3000 / portTICK_PERIOD_MS);    
     }while(response == GPRS_ERROR);
     
+    /*
     response = acua_gprs_send_command(CSQ, CSQ_ERROR, SHORT_DELAY, false, false); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    */
      
     response = acua_gprs_send_command(CGATT_ACTIVATE, AT_OK, LONG_DELAY, true, true); 
     vTaskDelay(1000 / portTICK_PERIOD_MS);    
@@ -166,10 +174,7 @@ bool acua_gprs_verify_status(){
 
     response = acua_gprs_send_command(SET_CGACT, CGACT_OK, LONG_DELAY, false, true); 
     vTaskDelay(3000 / portTICK_PERIOD_MS);  
-
-    //response = acua_gprs_send_command(SOCK, AT_OK, LONG_DELAY, false);
-    //vTaskDelay(2000 / portTICK_PERIOD_MS); 
-
+    
     //IP address
     response = acua_gprs_send_command(CGPADDR, CGPADDR_FAIL, SHORT_DELAY, true, false);
 
@@ -261,7 +266,7 @@ enum eGPRSStatus acua_gprs_send_command(const char * command, const char * valid
     }
     else
     {
-        printf("CTR: %d\n", ctr);   
+        //printf("CTR: %d\n", ctr);   
         while((ctr ++ < wait_ms / 2) && acua_gprs_response_available() == false ){
             vTaskDelay(20 / portTICK_PERIOD_MS);
         }
@@ -287,6 +292,64 @@ enum eGPRSStatus acua_gprs_send_command(const char * command, const char * valid
     else{
         return acua_gprs_verify_ok((const char *)data_buffer, validation_response) ? GPRS_ERROR : GPRS_OK ;
     }
+}
+
+struct BuffResponse acua_gprs_send_buffer(const char * buff, size_t buff_len, int wait_ms, bool force_wait){
+    int ctr = 0;
+    size_t WAIT_STEP = 20;
+    size_t MAX_WAIT_TIME = 50000;
+    struct BuffResponse buff_response = {.buff = NULL, .buff_len = 0};
+    size_t len = 0;
+
+    //uart_flush(UART_NUM_1);
+    uart_write_bytes(UART_NUM_1, buff, buff_len);
+
+    if(force_wait){
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+    }
+    else
+    {
+        while((ctr ++ < wait_ms) && acua_gprs_response_available() == false ){
+            vTaskDelay(WAIT_STEP / portTICK_PERIOD_MS);
+            ctr += WAIT_STEP;
+        }
+    }
+    
+
+    if(!acua_gprs_response_available()){
+        printf("GPRS_HARDWARE_ERROR\n");
+        goto exit_acua_gprs_send_buffer;
+    }
+
+    vTaskDelay(6000 / portTICK_PERIOD_MS);
+
+    uart_get_buffered_data_len(UART_NUM_1, &len);
+
+    printf("lenlen %d\n", len);
+
+    if (len < 2){
+        goto exit_acua_gprs_send_buffer;
+    }
+
+    buff = malloc(sizeof(uint8_t) * (len + 10));   
+    if (buff == NULL){
+        printf("aa\n");
+        goto exit_acua_gprs_send_buffer;
+    }     
+
+    len = uart_read_bytes(UART_NUM_1, buff, len, TICKS_TO_WAIT);
+    if(len <= 0){
+        free(buff);
+        buff = NULL;
+        printf("bb\n");
+    }
+
+    buff_response.buff = buff;
+    buff_response.buff_len = len;
+
+exit_acua_gprs_send_buffer:
+    
+    return buff_response;
 }
 
 bool acua_gprs_verify_ok(const char * resp, const char * pattern_ok){
@@ -572,57 +635,75 @@ bool acua_gprs_get_hour(){
     uint8_t * buff = NULL;
     const size_t NTP_FRAME_LEN = 48;
     char NTP_FRAME[NTP_FRAME_LEN];
+    struct BuffResponse buff_response;
 
-    if (acua_gprs_send_command(NET_OPEN, NET_OPEN_OK, SHORT_DELAY, false, true) != GPRS_OK)
+    char * ptr1 = NULL;
+    char * ptr2 = NULL;
+
+     if (acua_gprs_send_command(NET_OPEN, NET_OPEN_OK, SHORT_DELAY, false, true) != GPRS_OK)
     {
+        //goto exit_get_hour;
+    } 
+
+    //acua_gprs_send_buffer(GET_NTP_IP, strlen(GET_NTP_IP), BUFFER_AVAILABLE, SHORT_DELAY, false, true) != GPRS_OK){
+    buff_response = acua_gprs_interchange_message(GET_NTP_IP);
+    //buff = buff_response.buff;
+
+    if (buff_response.buff == NULL){
+        printf("sale\n");
         goto exit_get_hour;
     }
 
+    printf("BUFF: %s\n",  buff_response.buff);
 
-    buff = acua_gprs_interchange_message(GET_NTP_IP);
-
-    if (strstr((const char *)buff, AT_OK) == NULL){
+    if (strstr((const char *)buff_response.buff, AT_OK) == NULL){
+        printf("1\n");
         goto exit_get_hour;
     }
 
-    char * ptr1 = strstr((const char *)buff, ".org\",\"");
+    ptr1 = strstr((const char *)buff_response.buff, ".org\",\"");
     if (ptr1 == NULL){
+        printf("2\n");
         goto exit_get_hour;
     }
 
     ptr1 += 7;
 
-    char * ptr2 = strstr((const char *)ptr1, "\"");
+    ptr2 = strstr((const char *)ptr1, "\"");
     if (ptr2 == NULL){
+        printf("3\n");
         goto exit_get_hour;
     }
 
     size_t ip_len = ptr2 - ptr1;
     if (ip_len > IP_LEN){
+        printf("4\n");
         goto exit_get_hour;
     }
 
-    snprintf(NTP_server_ip, IP_LEN, "%s", ptr1);
+    snprintf(NTP_server_ip, ip_len + 1, "%s", ptr1);
 
     acua_gprs_send_command(BUFFER_MODE, AT_OK, SHORT_DELAY, false, true);
     vTaskDelay(200   / portTICK_PERIOD_MS);
-
     if (acua_gprs_send_command(CIPOPEN, CIPOPEN_OK, SHORT_DELAY, false, true) != GPRS_OK){
+        printf("5\n");
         goto exit_get_hour;
     }
 
-    free(buff);
+    utils_free_ptr(&(buff_response.buff));
+    buff = NULL;
+
     buff = malloc(sizeof(char) * 100);
     if (buff == NULL){
         goto exit_get_hour; 
     }
 
-    snprintf((char *)buff, 100, "%s,%d,%s,%s,%d", CIPSEND, NTP_FRAME_LEN, "UDP", NTP_server_ip, NTP_HOST_PORT);
+    snprintf((char *)buff, 100, "%s,%d,\"%s\",%d", CIPSEND, NTP_FRAME_LEN, NTP_server_ip, NTP_HOST_PORT);
     if (acua_gprs_send_command((const char *)buff, WRITE_SEQ, SHORT_DELAY, false, true) != GPRS_OK){
         goto exit_get_hour; 
     }
 
-    memset(NTP_HOST, 0, NTP_FRAME_LEN);
+    memset(NTP_FRAME, 0, NTP_FRAME_LEN);
     NTP_FRAME[0] = 0xE3;
     NTP_FRAME[1] = 0;
     NTP_FRAME[2] = 6;
@@ -632,27 +713,72 @@ bool acua_gprs_get_hour(){
     NTP_FRAME[14]  = 49;
     NTP_FRAME[15]  = 52;
 
-    uart_write_bytes(UART_NUM_1, NTP_FRAME, NTP_FRAME_LEN);
-    uart_write_bytes(UART_NUM_1, 0x1A, 1);
+    //uart_flush(UART_NUM_1);
+    //No se valida rta porque se envía una trama que no es imprimible
 
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    utils_free_ptr(&buff);
 
-    for (int i = 0; i < 100; ++i){     
-        if(acua_gprs_response_available()){
-            break;
+    buff_response = acua_gprs_send_buffer(NTP_FRAME, NTP_FRAME_LEN, SHORT_DELAY, false);
+    //buff = buff_response.buff;
+
+    if (buff_response.buff == NULL){
+        printf("sale 2\n");
+        goto exit_get_hour; 
+    }
+
+    //buff += NTP_FRAME_LEN;
+    ptr1 = strstr((const char*)(buff_response.buff + NTP_FRAME_LEN), IPD_NTP_RESPONSE);
+
+    if (ptr1 == NULL){
+        printf("sale 3 \n");
+        for(int i = 0 + NTP_FRAME_LEN; i< buff_response.buff_len; i++){
+            printf("%c\n", buff_response.buff[i]);
         }
-
-        vTaskDelay(10 / portTICK_PERIOD_MS);        
+        goto exit_get_hour; 
     }
 
-    if (!acua_gprs_response_available()){
-        goto exit_get_hour;
+    for(int i = 0; ptr1 - (char*)buff_response.buff + i< buff_response.buff_len; i++){
+        printf("%02x\n", ptr1[i]);
     }
 
+    ptr1 = ptr1 + strlen(IPD_NTP_RESPONSE) + 2;
+
+    int32_t tmp = 0;
+    tmp |= ptr1[40] << 24;
+    tmp |= ptr1[41] << 16;
+    tmp |= ptr1[42] << 8;
+    tmp |= ptr1[43] << 0;
+
+    tmp = tmp - NTP_1970_TIMESTAMP;
+    printf("captured timestamp: %u\n", tmp);    
+
+//    printf("Buff available: %s\n", buff_response.buff + NTP_FRAME_LEN);
+
+    utils_free_ptr(&(buff_response.buff));
+    buff = NULL;
+    
+
+/*
+    printf("LEN IS_ %d\n", len2);
+    if (len2 > NTP_FRAME_LEN){
+        printf("Buf: %s\n", data_buffer + NTP_FRAME_LEN);
+    }
+    else{
+        for(int i = 0; i< len2; i++){
+            printf("%c\n", data_buffer[i]);
+        }
+    }
+    */
+
+    //uart_flush(UART_NUM_1);
+    //uart_write_bytes(UART_NUM_1, NTP_FRAME, NTP_FRAME_LEN);
+
+/*
     size_t len = 0;
     uart_get_buffered_data_len(UART_NUM_1, &len);
 
     if (len <= 0){
+        printf("12\n");
         goto exit_get_hour;
     }
 
@@ -665,19 +791,57 @@ bool acua_gprs_get_hour(){
         goto exit_get_hour;
     }
 
+    memset(buff, 0, len);
     uart_read_bytes(UART_NUM_1, buff, len, TICKS_TO_WAIT);
 
-    if (strstr((char *)buff, BUFFER_AVAILABLE) == NULL){
+    printf("After send: %s and the len is %d\n", buff, len);
+
+    if (strstr((char *)buff, BUFFER_AVAILABLE) != NULL){
+        printf("13\n");
+        int32_t tmp = 0;
+        for(int i = 0; i< len; i++){
+            printf("%c\n", buff[i]);
+        }
+        tmp |= buff[42] << 24;
+        tmp |= buff[43] << 16;
+        tmp |= buff[44] << 8;
+        tmp |= buff[45] << 0;
+
+        tmp = tmp - 2208988800;
+        printf("captured timestamp: %u\n", tmp);
+
         goto exit_get_hour;
     }
 
     free(buff);
     buff = NULL;
+    */
+    uart_flush(UART_NUM_1);
 
-    buff = acua_gprs_interchange_message(READ_BUFFER);
-    if (buff == NULL){
+    vTaskDelay(1000  / portTICK_PERIOD_MS);
+
+    buff_response = acua_gprs_send_buffer(GET_BUFF_LEN, strlen(GET_BUFF_LEN), SHORT_DELAY, false);
+    printf("hello: %s\n", buff_response.buff);
+    utils_free_ptr(&(buff_response.buff));
+    buff = NULL;
+
+    uart_flush(UART_NUM_1);
+    vTaskDelay(1000  / portTICK_PERIOD_MS);
+
+    uart_flush(UART_NUM_1);
+    buff_response = acua_gprs_send_buffer(READ_BUFFER, strlen(READ_BUFFER), SHORT_DELAY, false);
+    buff = buff_response.buff;
+    if (buff_response.buff == NULL){
+        printf("sale 3 \n");
         goto exit_get_hour;
     }
+
+    for(int i = 0; i< buff_response.buff_len; i++){
+        printf("%c\n", buff[i]);
+    }
+
+    utils_free_ptr(&(buff_response.buff));
+    buff = NULL;
 
     ok = true;
 
@@ -689,19 +853,24 @@ exit_get_hour:
         buff = NULL;
     }
 
+    if (buff_response.buff != NULL){
+        free(&(buff_response.buff));
+        buff_response.buff = NULL;
+    }
+
     return ok;
 }
 
-uint8_t * acua_gprs_interchange_message(const char * msg){
+struct BuffResponse acua_gprs_interchange_message(const char * msg){
     size_t ctr = 0;
     size_t WAIT_STEP = 20;
-    size_t MAX_WAIT_TIME = 2000;
+    size_t MAX_WAIT_TIME = 10000;
     size_t len = 0;
     uint8_t * buff;
+    struct BuffResponse buff_response = {.buff = NULL, .buff_len = 0};
     
     if (acua_gprs_write(msg) == GPRS_ERROR){
-        printf("HW error\n");
-        return GPRS_HARDWARE_ERROR;
+        goto exit_acua_gprs_interchange_message;
     }
 
     while(!acua_gprs_response_available() && ctr < MAX_WAIT_TIME){
@@ -710,27 +879,34 @@ uint8_t * acua_gprs_interchange_message(const char * msg){
     }
 
     if (!acua_gprs_response_available()){
-        return NULL;
+        goto exit_acua_gprs_interchange_message;
     }
+
+    vTaskDelay(6000 / portTICK_PERIOD_MS);
+
 
     uart_get_buffered_data_len(UART_NUM_1, &len);
 
     if (len < 2){
-        return NULL;
+        goto exit_acua_gprs_interchange_message;
     }
 
     buff = malloc(sizeof(uint8_t) * (len + 10));
-
     if (buff == NULL){
-        return NULL;
+        goto exit_acua_gprs_interchange_message;
     }
 
 
     len = uart_read_bytes(UART_NUM_1, buff, len, TICKS_TO_WAIT);
-    if(len < 0){
+    if(len <= 0){
         free(buff);
         buff = NULL;
     }
+
+    buff_response.buff = buff;
+    buff_response.buff_len = len;
+
+exit_acua_gprs_interchange_message:
     
-    return buff;
+    return buff_response;
 }
