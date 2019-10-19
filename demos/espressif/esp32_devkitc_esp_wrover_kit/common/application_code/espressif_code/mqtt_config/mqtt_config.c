@@ -43,17 +43,14 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 
 void mqtt_config_init(void * param){
     //mqtt_queue = xQueueCreate(5, sizeof(struct MqttMsg));
-    mqttSubsQueue = xQueueCreate(5, sizeof(struct MqttSubsMsg));
+    //mqttSubsQueue = xQueueCreate(5, sizeof(struct MqttSubsMsg));
 }
 
 void mqtt_config_task(void * pvParameters){
     bool ok = true;
     struct MqttMsg mqtt_msg;
-    struct MqttSubsMsg mqttSubsMsg;
-    {
-        /* data */
-    };
-    
+    int ctr = 0;
+    int level = 0;
 
     ok = acua_gprs_init();
 
@@ -118,6 +115,12 @@ void mqtt_config_task(void * pvParameters){
             }
         }
 
+        if (ctr++ >= 100){
+            ctr = 0;
+            level = level > 0 ? 0 : 1;
+            gpio_set_level(GIPO_STATUS_ESP, level);
+        }
+        
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 

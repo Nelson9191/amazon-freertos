@@ -336,6 +336,7 @@ static uint64_t gpio_handler_get_output_mask(){
     output |= 1ULL<<GPIO_DO03;
     output |= 1ULL<<GPIO_DO04;
     output |= 1ULL<<GPIO_ON_GPRS;
+    output |= 1ULL<<GIPO_STATUS_ESP;
 
     return output;
 }
