@@ -45,7 +45,7 @@ static const char MQTT_BROKER_ENDPOINT[] = "a3b86accc5t4qb.iot.us-east-1.amazona
 
 /* Use of a "define" and not a "static const" here to be able to
 * use pre-compile concatenation on the string. */
-#define IOT_THING_NAME "Capri"
+#define IOT_THING_NAME "Prueba"
 
 /*
  * Port number the MQTT broker is using.
@@ -57,11 +57,11 @@ static const char MQTT_BROKER_ENDPOINT[] = "a3b86accc5t4qb.iot.us-east-1.amazona
  */
 #define GREENGRASS_DISCOVERY_PORT 8443
 
-#define MQTT_SUBSCRIBE_TOPIC    ( ( const uint8_t * ) "output/5d55c1b7632b4e0045a1a05a" )
+#define MQTT_SUBSCRIBE_TOPIC    ( ( const uint8_t * ) "output/12345678" )
 
-#define MQTT_PUBLISH_TOPIC      ( ( const uint8_t * ) "input/5d55c1b7632b4e0045a1a05a" )
+#define MQTT_PUBLISH_TOPIC      ( ( const uint8_t * ) "input/12345678" )
 
-#define MQTT_HEARTBEAT_TOPIC      ( ( const uint8_t * ) "heartbeat/5d55c1b7632b4e0045a1a05a" )
+#define MQTT_HEARTBEAT_TOPIC      ( ( const uint8_t * ) "heartbeat/12345678" )
 
 /* Timeout used when performing MQTT operations that do not need extra time
 to perform a TLS negotiation. */
@@ -77,7 +77,7 @@ to perform a TLS negotiation. */
 /**
  * It must be unique per MQTT broker.
  */
-#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "Capri" )
+#define MQTT_CLIENT_ID            ( ( const uint8_t * ) "Prueba" )
 
 /**
  * @brief Dimension of the character array buffers used to hold data (strings in
