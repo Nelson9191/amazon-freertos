@@ -21,8 +21,6 @@ bool acua_gprs_init();
 
 void acua_gprs_task(void * pvParameters);
 
-bool acua_gprs_verify_status();
-
 enum eGPRSStatus acua_gprs_recv(bool loop);
 
 

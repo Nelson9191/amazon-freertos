@@ -62,6 +62,10 @@
 
 #define WRITE_CERT_TEMPLATE "AT+CCERTDOWN="
 #define CERT_LIST           "AT+CCERTLIST"
+#define CERT_LIST_OK        "+CCERTLIST: \"cacert.pem\"\r\n" \
+                            "+CCERTLIST: \"clientcert.pem\"\r\n" \
+                            "+CCERTLIST: \"clientkey.pem\"" 
+
 #define DELETE_CACERT       "AT+CCERTDELE=\"cacert.pem\""
 #define DELETE_CERTIFICATE  "AT+CCERTDELE=\"clientcert.pem\""
 #define DELETE_PRIVATE_KEY  "AT+CCERTDELE=\"clientkey.pem\""
@@ -121,6 +125,8 @@
 #define NTP                     "AT+CNTP=\"pool.ntp.org\",8,1,2"
 #define NTP2                    "AT+CNTP"
 #define IPD_NTP_RESPONSE        "+IPD48"
+
+#define MQTT_CONN_LOST          "CMQTTCONNLOST"
 
 
 #endif

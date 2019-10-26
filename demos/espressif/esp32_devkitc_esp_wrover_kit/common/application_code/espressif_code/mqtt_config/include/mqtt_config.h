@@ -50,4 +50,8 @@ MQTTAgentHandle_t mqtt_config_get_handler();
 
 void mqtt_config_extract_msg();
 
+bool mqtt_config_connect();
+
+void mqtt_config_restart();
+
 #endif

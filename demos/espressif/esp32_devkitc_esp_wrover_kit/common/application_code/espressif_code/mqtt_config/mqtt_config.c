@@ -6,7 +6,7 @@
 #include "queue_conf.h"
 #include "gpio_info.h"
 #include "acua_gprs.h"
-
+#include "at_commands.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -62,30 +62,16 @@ void mqtt_config_task(void * pvParameters){
     ok = acua_gprs_config_network();
 
     if(!ok){
-        //Definir que deberia hacer
+        mqtt_config_restart();
     }
 
     acua_gprs_get_hour();
 
-    ok = acua_gprs_start_mqtt();
+    ok = mqtt_config_connect();
 
-    if(!ok){
-        //Definir que hacer
-    }
-
-    flags_set_mqtt_connected();
-    ok = acua_gprs_subscribe(MQTT_SUBSCRIBE_TOPIC);
-
-    if(!ok)
-    {
-        //Definir que hacer
-    }
-
-    //ok = acua_gprs_subscribe(MQTT_HEARTBEAT_TOPIC);
-
-    if(!ok)
-    {
-        //Definir que hacer
+    if (!ok){
+        printf("Imposible conectar al broker.\nReiniciar ESP y GPRS\n");
+        mqtt_config_restart();
     }
 
     timestamp_received = rtc_config_get_time();
@@ -99,26 +85,33 @@ void mqtt_config_task(void * pvParameters){
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         } 
 
-        if(acua_gprs_recv(false) == GPRS_OK){
+        if (acua_gprs_recv(false) == GPRS_OK){
             acua_gprs_coppy_buffer(cDataBuffer, MQTT_MAX_DATA_LENGTH);
             printf("buffer: %s\n", cDataBuffer);
         
-            if(strstr(cDataBuffer, MQTT_SUBSCRIBE_TOPIC) != NULL){
+            if (strstr(cDataBuffer, MQTT_SUBSCRIBE_TOPIC) != NULL){
                 //printf("OUTPUT\n");
                 mqtt_config_extract_msg();
                 //printf("buffer: %s\n", cDataBuffer);
                 mqtt_config_process_output(cDataBuffer);
             }
-            else if(strstr(cDataBuffer, MQTT_HEARTBEAT_TOPIC) != NULL){
+            else if (strstr(cDataBuffer, MQTT_HEARTBEAT_TOPIC) != NULL){
                 printf("HEARTBEAT\n");
                 mqtt_config_extract_msg();
                 printf("buffer: %s\n", cDataBuffer);
                 mqtt_config_process_heartbeat(cDataBuffer);
             }
+            else if (strstr(cDataBuffer, MQTT_CONN_LOST) != NULL ){
+                printf("Desconectado\n");
+                flags_reset_mqtt_connected();
+                if (acua_gprs_config_network() == false || mqtt_config_connect() == false){
+                    printf("Imposible volver a conectar al broker.\nReiniciar ESP y GPRS\n");
+                    mqtt_config_restart();
+                }
+            }
         }
 
         mqtt_config_verify_heartbeat();
-
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 
@@ -274,6 +267,39 @@ void mqtt_config_verify_heartbeat(){
     if((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > HEARTHBEAT_RECV_INTERVAL_SECS)){ // Reiniciar
         //Si han pasado mas de 4 min 
         printf("Reinicia dispositivo por heartbeat\n");
-        esp_restart();
+        timestamp_received = timestamp_sent;
+        //esp_restart();
     }
+}
+
+bool mqtt_config_connect(){
+    size_t ctr = 0;
+    bool ok = true;
+
+    for (int i = 0; i < 3; i++){
+        ok = true;
+        ok &= acua_gprs_start_mqtt();
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        ok &= acua_gprs_subscribe(MQTT_SUBSCRIBE_TOPIC);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        ok &= acua_gprs_subscribe(MQTT_HEARTBEAT_TOPIC);
+
+        if (ok){
+            flags_set_mqtt_connected();
+            break;
+        }
+
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+    }
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    return ok;
+}
+
+void mqtt_config_restart(){
+    gpio_set_level(GPIO_RESET_GPRS, 1);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_RESET_GPRS, 0);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    esp_restart();    
 }
