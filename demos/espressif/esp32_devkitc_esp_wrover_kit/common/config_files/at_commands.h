@@ -16,6 +16,7 @@
 //Verify registration status and access technology
 #define CREG                "AT+CREG?"
 #define CREG_OK             ",1"
+#define CREG_ROAMING        ",5"
 
 //Verify registration status
 #define CGREG               "AT+CGREG?"

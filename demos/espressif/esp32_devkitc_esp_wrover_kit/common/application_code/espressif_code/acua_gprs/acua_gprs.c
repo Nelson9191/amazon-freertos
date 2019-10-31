@@ -116,7 +116,8 @@ bool acua_gprs_config_network(){
 
     //Valida estado de GPRS
     for (int i = 0; i < 60; i++){
-        response = acua_gprs_send_command(CREG, CREG_OK, SHORT_DELAY, false, true);
+        //response = acua_gprs_send_command(CREG, CREG_OK, SHORT_DELAY, false, true);
+        response = acua_gprs_send_creg(CREG, CREG_OK, SHORT_DELAY, false, true);
         if (response != GPRS_ERROR){
             ok = true;
             break;
@@ -302,6 +303,48 @@ enum eGPRSStatus acua_gprs_send_command(const char * command, const char * valid
     }
     else{
         return acua_gprs_verify_ok((const char *)data_buffer, validation_response) ? GPRS_ERROR : GPRS_OK ;
+    }
+}
+
+enum eGPRSStatus acua_gprs_send_creg(const char * command, const char * validation_response, int wait_ms, bool force_wait, bool validate_ok){
+    int ctr = 0;
+
+
+    if(acua_gprs_write(command) == GPRS_ERROR){
+        printf("HW error\n");
+        return GPRS_HARDWARE_ERROR;
+    }
+
+    if(force_wait){
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+    }
+    else
+    {
+        //printf("CTR: %d\n", ctr);   
+        while((ctr ++ < wait_ms / 2) && acua_gprs_response_available() == false ){
+            vTaskDelay(20 / portTICK_PERIOD_MS);
+        }
+    }
+    
+
+    if(!acua_gprs_response_available()){
+        printf("GPRS_HARDWARE_ERROR\n");
+        return GPRS_HARDWARE_ERROR;
+    }
+
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    enum eGPRSStatus resp = acua_gprs_recv(true);
+    if (resp != GPRS_OK){
+        printf("HW error2\n");
+        return GPRS_HARDWARE_ERROR;
+    }
+
+    if (strstr((const char *)data_buffer, CREG_OK) != NULL || strstr((const char *)data_buffer, CREG_ROAMING) != NULL){
+        return GPRS_OK;
+    }
+    else{
+        return GPRS_ERROR;
     }
 }
 
