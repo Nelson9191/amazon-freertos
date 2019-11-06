@@ -148,10 +148,16 @@ void mqtt_config_report_status(struct MqttMsg mqtt_msg){
 }
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
+    static int error_ctr = 0;
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
     //printf("send---%s\n", cDataBuffer); 
-    acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);  
+    if (acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer) == true){
+        error_ctr = 0;
+    }
+    else if (error_ctr++ > 3){
+        mqtt_config_restart();
+    }
 }
 
 void mqtt_config_process_heartbeat(const char * cBuffer){
