@@ -782,6 +782,7 @@ exit_get_hour:
     utils_free_ptr(&buff);
     utils_free_ptr(&(buff_response.buff));
 
+    acua_gprs_send_command(NET_CLOSE, AT_OK, SHORT_DELAY, false, true);
     return ok;
 }
 

@@ -80,8 +80,6 @@ void mqtt_config_task(void * pvParameters){
     timestamp_received = rtc_config_get_time();
     
     for(;;){
-        //mqtt_config_verify_heartbeat();
-        //ctr_disconnect = 0;
 
         if(xQueueReceive(mqtt_queue, &mqtt_msg, 0 )){//Lee si hay items en la cola
             mqtt_config_report_status(mqtt_msg);
@@ -98,12 +96,14 @@ void mqtt_config_task(void * pvParameters){
                 //printf("buffer: %s\n", cDataBuffer);
                 mqtt_config_process_output(cDataBuffer);
             }
+            /*
             else if (strstr(cDataBuffer, MQTT_HEARTBEAT_TOPIC) != NULL){
                 printf("Heartbeat Recibido\n");
                 mqtt_config_extract_msg();
                 //printf("buffer: %s\n", cDataBuffer);
                 mqtt_config_process_heartbeat(cDataBuffer);
             }
+            */
             else if (strstr(cDataBuffer, MQTT_CONN_LOST) != NULL ){
                 printf("Desconectado\n");
                 flags_reset_mqtt_connected();
@@ -273,16 +273,8 @@ void mqtt_config_verify_heartbeat(){
         timestamp_sent = curr_timestamp;
         printf("send heartbeat -----------\n");
         mqtt_config_send_heartbeat(timestamp_sent);
-        printf("heartbeat sent: %d\n", timestamp_sent);
-        printf("last heartbeat received: %d\n", timestamp_received);
-    }
-
-
-    if((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > HEARTHBEAT_RECV_INTERVAL_SECS)){ // Reiniciar
-        //Si han pasado mas de 4 min 
-        printf("Reinicia dispositivo por heartbeat\n");
-        timestamp_received = timestamp_sent;
-        //esp_restart();
+        //printf("heartbeat sent: %d\n", timestamp_sent);
+        //printf("last heartbeat received: %d\n", timestamp_received);
     }
 }
 
@@ -295,8 +287,8 @@ bool mqtt_config_connect(){
         ok &= acua_gprs_start_mqtt();
         vTaskDelay(500 / portTICK_PERIOD_MS);
         ok &= acua_gprs_subscribe(MQTT_SUBSCRIBE_TOPIC);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        ok &= acua_gprs_subscribe(MQTT_HEARTBEAT_TOPIC);
+        //vTaskDelay(500 / portTICK_PERIOD_MS);
+        //ok &= acua_gprs_subscribe(MQTT_HEARTBEAT_TOPIC);
 
         if (ok){
             flags_set_mqtt_connected();

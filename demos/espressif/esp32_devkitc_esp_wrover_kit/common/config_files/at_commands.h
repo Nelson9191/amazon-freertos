@@ -112,6 +112,7 @@
 //NTP
 #define NET_OPEN                "AT+NETOPEN"
 #define NET_OPEN_OK             "+NETOPEN: 0"
+#define NET_CLOSE               "AT+NETCLOSE"
 #define GET_NTP_IP              "AT+CDNSGIP=\"us.pool.ntp.org\""
 #define CIPOPEN                 "AT+CIPOPEN=1,\"UDP\",,,5001"
 #define CIPOPEN_OK              "+CIPOPEN: 1,0"

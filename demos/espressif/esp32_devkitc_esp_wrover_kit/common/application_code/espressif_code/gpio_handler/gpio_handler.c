@@ -47,9 +47,6 @@ void gpio_handler_init(){
                               TASK_WRITE_GPIO_PRIORITY,
                               NULL );                              
     }
-
-    //Lee el estado inicial de entradas y salidas digitales
-    gpio_handler_collect_gpios();
 }
 
 
