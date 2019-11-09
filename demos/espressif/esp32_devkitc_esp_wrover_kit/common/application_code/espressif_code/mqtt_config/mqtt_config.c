@@ -74,6 +74,8 @@ void mqtt_config_task(void * pvParameters){
         mqtt_config_restart();
     }
 
+    gpio_set_level(GPIO_STATUS_ESP, 1);
+
     //Envia un comando x para que el módulo de GPIO reporte su estado
     queue_conf_send_gpio_command(1);
 
@@ -106,10 +108,14 @@ void mqtt_config_task(void * pvParameters){
             */
             else if (strstr(cDataBuffer, MQTT_CONN_LOST) != NULL ){
                 printf("Desconectado\n");
+                gpio_set_level(GPIO_STATUS_ESP, 0);
                 flags_reset_mqtt_connected();
                 if (acua_gprs_config_network() == false || mqtt_config_connect() == false){
                     printf("Imposible volver a conectar al broker.\nReiniciar ESP y GPRS\n");
                     mqtt_config_restart();
+                }
+                else{
+                    gpio_set_level(GPIO_STATUS_ESP, 1);
                 }
             }
         }

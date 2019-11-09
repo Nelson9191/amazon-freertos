@@ -27,7 +27,7 @@
 #define GPIO_DO04           4  // GPIO04 
 #define GPIO_ON_GPRS        13
 #define GPIO_RESET_GPRS     12
-#define GIPO_STATUS_ESP     33
+#define GPIO_STATUS_ESP     33
 
 #define DO01_NAME "DO01"
 #define DO02_NAME "DO02"
