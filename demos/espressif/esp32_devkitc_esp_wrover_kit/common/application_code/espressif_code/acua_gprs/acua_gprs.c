@@ -630,7 +630,7 @@ bool acua_gprs_publish(const char * topic, const char * msg){
         return false;
     }
 
-    ok &= acua_gprs_send_command(PUBLISH, PUBLISH_OK, SHORT_DELAY, false, true) == GPRS_OK;
+    ok &= acua_gprs_send_command(PUBLISH, PUBLISH_OK, SHORT_DELAY*2, false, true) == GPRS_OK;
     //vTaskDelay(500 / portTICK_PERIOD_MS);                    
 
     free(buff);

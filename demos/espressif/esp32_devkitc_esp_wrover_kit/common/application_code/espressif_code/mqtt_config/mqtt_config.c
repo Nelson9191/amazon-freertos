@@ -156,10 +156,12 @@ void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
 
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
 
+    printf("Heartbeat1\n");
     ok = acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);
 
     if (!ok){
         vTaskDelay(5000 / portTICK_PERIOD_MS);
+        printf("Heartbeat2\n");
         ok = acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);
     }
 
