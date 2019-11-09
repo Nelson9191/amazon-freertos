@@ -96,9 +96,9 @@ void mqtt_config_task(void * pvParameters){
                 mqtt_config_process_output(cDataBuffer);
             }
             else if (strstr(cDataBuffer, MQTT_HEARTBEAT_TOPIC) != NULL){
-                printf("HEARTBEAT\n");
+                printf("Heartbeat Recibido\n");
                 mqtt_config_extract_msg();
-                printf("buffer: %s\n", cDataBuffer);
+                //printf("buffer: %s\n", cDataBuffer);
                 mqtt_config_process_heartbeat(cDataBuffer);
             }
             else if (strstr(cDataBuffer, MQTT_CONN_LOST) != NULL ){
@@ -148,14 +148,19 @@ void mqtt_config_report_status(struct MqttMsg mqtt_msg){
 }
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
-    static int error_ctr = 0;
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
+    bool ok;
+
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
-    //printf("send---%s\n", cDataBuffer); 
-    if (acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer) == true){
-        error_ctr = 0;
+
+    ok = acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);
+
+    if (!ok){
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        ok = acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);
     }
-    else if (error_ctr++ > 3){
+
+    if (!ok){
         mqtt_config_restart();
     }
 }
