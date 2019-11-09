@@ -4,6 +4,7 @@
 static struct MqttMsg mqtt_msg;
 static struct GPIOMsg gpio_msg;
 static struct WIFIMsg wifi_msg;
+static struct GPIOCommand gpio_command;
 
 
 void queue_conf_init(){
@@ -12,6 +13,7 @@ void queue_conf_init(){
     wifi_queue = xQueueCreate(5, sizeof(struct WIFIMsg));
     at_queue = xQueueCreate(5, sizeof(struct ATMsg));
     mqttSubsQueue = xQueueCreate(5, sizeof(struct MqttSubsMsg));
+    gpio_command_queue = xQueueCreate(1, sizeof(struct GPIOCommand));
 }
 
 void queue_conf_send_mqtt(struct MqttMsg msg){
@@ -26,6 +28,11 @@ void queue_conf_send_gpio(uint32_t _gpio, uint32_t _status){
     gpio_msg.gpio = _gpio;
     gpio_msg.status = _status;
     xQueueSendToBack(gpio_queue, &gpio_msg, 0);
+}
+
+void queue_conf_send_gpio_command(uint32_t command){
+    gpio_command.command = command;
+    xQueueSendToBack(gpio_command_queue, &gpio_command, 0);
 }
 
 void queue_conf_send_wifi(struct WIFIMsg msg){

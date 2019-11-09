@@ -35,4 +35,5 @@ void gpio_handler_write(uint32_t gpio, uint32_t level);
 
 void gpio_handler_config_gpios();
 
+
 #endif

@@ -15,6 +15,7 @@
 
 static QueueHandle_t gpio_evt_queue;
 QueueHandle_t gpio_queue;
+QueueHandle_t gpio_command_queue;
 
 
 static Gpios_t DI_status;
@@ -46,6 +47,9 @@ void gpio_handler_init(){
                               TASK_WRITE_GPIO_PRIORITY,
                               NULL );                              
     }
+
+    //Lee el estado inicial de entradas y salidas digitales
+    gpio_handler_collect_gpios();
 }
 
 
@@ -75,8 +79,7 @@ void gpio_handler_write(uint32_t gpio, uint32_t level){
         case 4: gpio = GPIO_DO04;
                 break;                
     }
-    //printf("write gpio-> %d:", gpio);    
-    //printf("%d\n", level);
+
     gpio_set_level(gpio, level);
 }
 
@@ -232,11 +235,16 @@ static bool gpio_handler_compare_status(unsigned int gpio){
 void gpio_handler_write_task(void * pvParameters){
     (void) pvParameters;
     struct GPIOMsg gpio_msg;
+    struct GPIOCommand gpio_command;
 
     for(;;){
         while(xQueueReceive(gpio_queue, &gpio_msg, NULL) != errQUEUE_EMPTY){
             gpio_handler_write(gpio_msg.gpio, gpio_msg.status);            
         }
+
+        while(xQueueReceive(gpio_command_queue, &gpio_command, NULL) != errQUEUE_EMPTY){
+            gpio_handler_collect_gpios();          
+        }        
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
@@ -339,4 +347,65 @@ static uint64_t gpio_handler_get_output_mask(){
     output |= 1ULL<<GPIO_RESET_GPRS;
     
     return output;
+}
+
+static void gpio_handler_report_gpio_status(uint32_t gpio, const char * gpio_name, uint32_t timestamp){
+    struct MqttMsg mqtt_msg;
+
+    mqtt_msg.timestamp = timestamp;
+    mqtt_msg.status = gpio_handler_read(gpio);
+    snprintf(mqtt_msg.name, 10, "%s", gpio_name);                                                                                   
+    queue_conf_send_mqtt(mqtt_msg);
+}
+
+static void gpio_handler_collect_gpios(){
+    uint32_t timestamp = rtc_config_get_time();
+
+    gpio_handler_report_gpio_status(GPIO_DI01, DI01_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    gpio_handler_report_gpio_status(GPIO_DI02, DI02_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    gpio_handler_report_gpio_status(GPIO_DI03, DI03_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    gpio_handler_report_gpio_status(GPIO_DI04, DI04_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    gpio_handler_report_gpio_status(GPIO_DI05, DI05_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    gpio_handler_report_gpio_status(GPIO_DI06, DI06_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    gpio_handler_report_gpio_status(GPIO_DI07, DI07_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    gpio_handler_report_gpio_status(GPIO_DI08, DI08_NAME, timestamp);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    if (USE_GPIO_DI01)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO01, DO01_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+
+    if (USE_GPIO_DI02)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO02, DO02_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+
+    if (USE_GPIO_DI03)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO03, DO03_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+
+    if (USE_GPIO_DI04)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO04, DO04_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }        
 }

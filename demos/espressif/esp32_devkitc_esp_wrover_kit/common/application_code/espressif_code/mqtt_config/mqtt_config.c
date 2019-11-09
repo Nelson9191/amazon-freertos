@@ -74,6 +74,9 @@ void mqtt_config_task(void * pvParameters){
         mqtt_config_restart();
     }
 
+    //Envia un comando x para que el módulo de GPIO reporte su estado
+    queue_conf_send_gpio_command(1);
+
     timestamp_received = rtc_config_get_time();
     
     for(;;){

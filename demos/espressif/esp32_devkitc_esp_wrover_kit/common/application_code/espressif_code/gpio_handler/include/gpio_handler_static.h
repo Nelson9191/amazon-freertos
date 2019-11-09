@@ -31,4 +31,21 @@ Para un gpio (entrada) compara el estado actual con el que se ha reportado anter
 */
 static bool gpio_handler_compare_status(unsigned int gpio);
 
+/*
+Para un gpio (entrada/salida) envia el reporte al queue de MQTT
+@Params: - gpio: entrada/salida
+@Params: - gpio_name: nombre entrada/salida
+@Params: - timestamp: timestamp de reporte
+@Return:
+*/
+static void gpio_handler_report_gpio_status(uint32_t gpio, const char * gpio_name, uint32_t timestamp);
+
+
+/*
+Reporta el estado de todas las entradas y salidas digitales
+@Params: 
+@Return:
+*/
+static void gpio_handler_collect_gpios();
+
 #endif
