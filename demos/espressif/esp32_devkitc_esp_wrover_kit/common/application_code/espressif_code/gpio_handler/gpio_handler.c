@@ -359,6 +359,30 @@ static void gpio_handler_report_gpio_status(uint32_t gpio, const char * gpio_nam
 static void gpio_handler_collect_gpios(){
     uint32_t timestamp = rtc_config_get_time();
 
+   if (USE_GPIO_DI01)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO01, DO01_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+
+    if (USE_GPIO_DI02)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO02, DO02_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+
+    if (USE_GPIO_DI03)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO03, DO03_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+
+    if (USE_GPIO_DI04)
+    {
+        gpio_handler_report_gpio_status(GPIO_DO04, DO04_NAME, timestamp);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }     
+
     gpio_handler_report_gpio_status(GPIO_DI01, DI01_NAME, timestamp);
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
@@ -381,29 +405,5 @@ static void gpio_handler_collect_gpios(){
     vTaskDelay(500 / portTICK_PERIOD_MS);
 
     gpio_handler_report_gpio_status(GPIO_DI08, DI08_NAME, timestamp);
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-
-    if (USE_GPIO_DI01)
-    {
-        gpio_handler_report_gpio_status(GPIO_DO01, DO01_NAME, timestamp);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-
-    if (USE_GPIO_DI02)
-    {
-        gpio_handler_report_gpio_status(GPIO_DO02, DO02_NAME, timestamp);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-
-    if (USE_GPIO_DI03)
-    {
-        gpio_handler_report_gpio_status(GPIO_DO03, DO03_NAME, timestamp);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-
-    if (USE_GPIO_DI04)
-    {
-        gpio_handler_report_gpio_status(GPIO_DO04, DO04_NAME, timestamp);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }        
+    vTaskDelay(500 / portTICK_PERIOD_MS);      
 }
