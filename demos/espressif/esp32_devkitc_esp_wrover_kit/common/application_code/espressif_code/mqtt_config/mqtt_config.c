@@ -17,6 +17,7 @@
 #include "aws_hello_world.h"
 #include "rtc_config.h"
 #include "jsmn.h"
+#include "utils.h"
 
 
 static MQTTAgentHandle_t xMQTTHandle = NULL;
@@ -158,9 +159,27 @@ void mqtt_config_report_status(struct MqttMsg mqtt_msg){
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
+    struct BuffResponse buff_response = acua_gprs_interchange_message(CSQ);
     bool ok;
+    char signal[15];
+    memset(signal, 0, 15);
 
-    (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
+    if (buff_response.buff != NULL){
+        char * ptr = strstr((const char *)buff_response.buff, "+CSQ:");
+        if (ptr){
+            size_t i = 0;
+            while (*ptr != '\n' && *ptr != ',' && i < 14){
+                signal[i++] = *ptr;
+                ptr++;
+            }
+        }
+        (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u, \"signal\": \"%s\"}", curr_timestamp, signal);
+    }
+    else{
+        (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
+    }
+
+    utils_free_ptr(&(buff_response.buff));
 
     printf("Heartbeat1\n");
     ok = acua_gprs_publish(MQTT_HEARTBEAT_TOPIC, cDataBuffer);
