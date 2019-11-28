@@ -333,6 +333,26 @@ void mqtt_config_restart(){
     gpio_set_level(GPIO_RESET_GPRS, 1);
     vTaskDelay(100 / portTICK_PERIOD_MS);
     gpio_set_level(GPIO_RESET_GPRS, 0);
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_DO01, 0);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_DO02, 0);    
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_DO03, 0);    
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_DO04, 0);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_STATUS_ESP, 0)    
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     esp_restart();    
+}
+
+void mqtt_config_turn_off_putputs(){
+    gpio_set_level(GPIO_RESET_GPRS, 1);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_RESET_GPRS, 0);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    esp_restart();     
 }
