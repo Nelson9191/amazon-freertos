@@ -67,8 +67,10 @@ bool acua_gprs_init(){
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 
 
+    acua_gprs_send_command(ECHO_MODE_ON, AT_OK, SHORT_DELAY, false, true);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+
     do{
-        //uart_flush(UART_NUM_1);
         printf("INIT\n");
         response = acua_gprs_send_command(CPIN, CPIN_OK, SHORT_DELAY, false, true);
         vTaskDelay(2000 / portTICK_PERIOD_MS);    

@@ -343,7 +343,7 @@ void mqtt_config_restart(){
     vTaskDelay(50 / portTICK_PERIOD_MS);
     gpio_set_level(GPIO_DO04, 0);
     vTaskDelay(50 / portTICK_PERIOD_MS);
-    gpio_set_level(GPIO_STATUS_ESP, 0)    
+    gpio_set_level(GPIO_STATUS_ESP, 0);  
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     esp_restart();    

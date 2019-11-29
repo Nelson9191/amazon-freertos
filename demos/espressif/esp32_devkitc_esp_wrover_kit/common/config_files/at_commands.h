@@ -6,6 +6,8 @@
 #define AT                  "AT"
 #define AT_OK               "OK"
 
+#define ECHO_MODE_ON        "ATE1"
+
 #define CPIN             "AT+CPIN?"
 #define CPIN_OK          "+CPIN: READY"
 
