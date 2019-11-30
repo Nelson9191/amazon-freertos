@@ -330,9 +330,9 @@ bool mqtt_config_connect(){
 }
 
 void mqtt_config_restart(){
-    gpio_set_level(GPIO_RESET_GPRS, 1);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
     gpio_set_level(GPIO_RESET_GPRS, 0);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_RESET_GPRS, 1);
     
     vTaskDelay(50 / portTICK_PERIOD_MS);
     gpio_set_level(GPIO_DO01, 0);

@@ -23,7 +23,7 @@
 
 #define GPIO_DO01           15   // GPIO15 
 #define GPIO_DO02           2   // GPIO02 
-#define GPIO_DO03           5   // GPIO00 
+#define GPIO_DO03           0   // GPIO00 
 #define GPIO_DO04           4  // GPIO04 
 #define GPIO_ON_GPRS        13
 #define GPIO_RESET_GPRS     13 //Solo para devkit, ya que no hay pin de On en el modulo de gprs
