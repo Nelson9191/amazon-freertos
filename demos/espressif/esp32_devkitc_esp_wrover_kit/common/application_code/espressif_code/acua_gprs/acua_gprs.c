@@ -58,11 +58,11 @@ bool acua_gprs_init(){
 
 
     //Time for the GPRS to start
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    //vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    queue_conf_send_gpio(GPIO_ON_GPRS, 1);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    queue_conf_send_gpio(GPIO_ON_GPRS, 0);
+    //queue_conf_send_gpio(GPIO_ON_GPRS, 1);
+    //vTaskDelay(1000 / portTICK_PERIOD_MS);
+    //queue_conf_send_gpio(GPIO_ON_GPRS, 0);
 
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 
