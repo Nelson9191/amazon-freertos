@@ -29,6 +29,13 @@
 #define TASK_NTP_STACK_SIZE      2000
 #define TASK_NTP_PRIORITY        2
 
+#define TASK_LEVEL_NAME            "LEVEL"
+#define TASK_LEVEL_STACK_SIZE      1500
+#define TASK_LEVEL_PRIORITY        1
+
+#define TASK_ULTRASONIC_NAME            "ULTRASONIC"
+#define TASK_ULTRASONIC_STACK_SIZE      1500
+#define TASK_ULTRASONIC_PRIORITY        1
 
 
 

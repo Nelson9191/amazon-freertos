@@ -1,6 +1,7 @@
 #include "gpio_handler.h"
 #include "gpio_handler_static.h"
 #include "gpio_info.h"
+#include "general_info.h"
 #include "mqtt_config.h"
 #include "task_config.h"
 #include "rtc_config.h"
@@ -32,12 +33,15 @@ void gpio_handler_init(){
     gpio_handler_config_gpios();
     gpio_evt_queue = xQueueCreate(25, sizeof(uint32_t));
     if(gpio_evt_queue != NULL){
+
+#if !ULTRASONIC_SENSOR
         ( void ) xTaskCreate( gpio_handler_read_task,
                               TASK_GPIO_READ_NAME,
                               TASK_GPIO_READ_STACK_SIZE,
                               NULL,
                               TASK_READ_GPIO_PRIORITY,
                               NULL );
+#endif                              
 
         ( void ) xTaskCreate( gpio_handler_write_task,
                               TASK_GPIO_WRITE_NAME,
@@ -73,7 +77,8 @@ void gpio_handler_write(uint32_t gpio, uint32_t level){
         case 3: gpio = GPIO_DO03;
                 break;
         case 4: gpio = GPIO_DO04;
-                break;                
+                break;
+                       
     }
     //printf("write gpio-> %d:", gpio);    
     //printf("%d\n", level);
@@ -244,6 +249,7 @@ void gpio_handler_write_task(void * pvParameters){
 
 
 void gpio_handler_config_gpios(){
+
     gpio_config_t io_conf;
     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;//disable interrupt    
     io_conf.mode = GPIO_MODE_OUTPUT;
@@ -252,7 +258,11 @@ void gpio_handler_config_gpios(){
     io_conf.pull_up_en = 0;//disable pull-up mode    
     gpio_config(&io_conf);//configure GPIO with the given settings
 
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;//interrupt of rising edge
+#if ULTRASONIC_SENSOR
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+#else
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;//interrupt of rising edge
+#endif
     io_conf.pin_bit_mask = gpio_handler_get_input_mask();
     io_conf.mode = GPIO_MODE_INPUT;    
     io_conf.pull_down_en = 0;//disable pull-down mode
@@ -299,6 +309,9 @@ void gpio_handler_config_gpios(){
 
 static uint64_t gpio_handler_get_input_mask(){
     uint64_t input = 0;
+
+#if !ULTRASONIC_SENSOR
+
     if(USE_GPIO_DI01){
         input |= 1ULL<<GPIO_DI01;
     }
@@ -323,7 +336,12 @@ static uint64_t gpio_handler_get_input_mask(){
     if(USE_GPIO_DI08){
         input |= 1ULL<<GPIO_DI08;
     }
-                         
+
+#else
+
+    input |= 1ULL<<ULTRASONIC_ECHO;
+
+#endif                         
 
     return input;
 }
@@ -331,10 +349,22 @@ static uint64_t gpio_handler_get_input_mask(){
 
 static uint64_t gpio_handler_get_output_mask(){
     uint64_t output = 0;
+
+#if !ULTRASONIC_SENSOR
+
     output |= 1ULL<<GPIO_DO01;
     output |= 1ULL<<GPIO_DO02;
     output |= 1ULL<<GPIO_DO03;
     output |= 1ULL<<GPIO_DO04;
+
+#else
+
+    output |= 1ULL<<ULTRASONIC_TRIGGER;
+    output |= 1ULL<<ULTRASONIC_BLINK;
+    output |= 1ULL<<ULTRASONIC_RELAY1;
+    output |= 1ULL<<ULTRASONIC_RELAY2;
+
+#endif    
 
     return output;
 }

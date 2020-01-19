@@ -1,6 +1,17 @@
 #ifndef _GPIO_INFO_H_
 #define _GPIO_INFO_H_
 
+/*------------- ULTRASONIC---------------  */
+/*----INPUTS----*/
+#define ULTRASONIC_ECHO     23
+
+/*----OUTPUTS----*/
+#define ULTRASONIC_TRIGGER  22
+#define ULTRASONIC_BLINK    21
+#define ULTRASONIC_RELAY1   2
+#define ULTRASONIC_RELAY2   15
+
+
 #define GPIO_DI01      14   /* GPIO12 */
 #define GPIO_DI02      27   /* GPIO14 */
 #define GPIO_DI03      26   /* GPIO27 */
@@ -18,8 +29,6 @@
 #define DI06_NAME "DI06"
 #define DI07_NAME "DI07"
 #define DI08_NAME "DI08"
-
-
 
 #define GPIO_DO01      15   // GPIO15 
 #define GPIO_DO02       2   // GPIO02 

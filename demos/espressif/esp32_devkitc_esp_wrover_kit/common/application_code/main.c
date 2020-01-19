@@ -5,7 +5,7 @@
 #include "aws_system_init.h"
 
 
-
+#include "general_info.h"
 #include "task_config.h"
 #include "flags.h"
 #include "nvs_storage.h"
@@ -20,6 +20,7 @@
 #include "analog_handler.h"
 #include "queue_conf.h"
 #include "ntp.h"
+#include "am_ultrasonic.h"
 
 /* Logging Task Defines. */
 #define mainLOGGING_MESSAGE_QUEUE_LENGTH    ( 32 )
@@ -33,17 +34,21 @@ int app_main( void ){
     
     if(SYSTEM_Init() == pdPASS){
         flags_init();
-        //spiffs_storage_init();
         nvs_storage_init();    
         authentication_init();
         queue_conf_init();
         mqtt_config_init();
         rtc_config_init();
         wifi_config_init();
-        //ota_client_init();
         gpio_handler_init();
-        analog_handler_init();
         ntp_init();
+
+#if ULTRASONIC_SENSOR
+    am_ultrasonic_init();
+#else
+    analog_handler_init();
+#endif        
+
 
         WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();
 
