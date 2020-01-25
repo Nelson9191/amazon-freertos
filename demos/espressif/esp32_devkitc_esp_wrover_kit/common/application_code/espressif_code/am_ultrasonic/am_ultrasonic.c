@@ -12,7 +12,7 @@
 #define TRIGGER_LOW_DELAY 4
 #define TRIGGER_HIGH_DELAY 10
 #define PING_TIMEOUT 6000
-#define ROUNDTRIP 58
+#define ROUNDTRIP 583
 #define MAX_DISTANCE_CM     450
 
 #define BLINK_PIN       21
@@ -84,7 +84,7 @@ static bool _am_ultrasonic_measure(int * distance_cm){
     //start to measure pulse width
     echo_start = esp_timer_get_time();
     echo_finish = echo_start;
-    max_timeout = echo_start + MAX_DISTANCE_CM * ROUNDTRIP;
+    max_timeout = echo_start + MAX_DISTANCE_CM * ROUNDTRIP / 10;
 
     while (gpio_get_level(ULTRASONIC_ECHO))
     {
@@ -100,7 +100,7 @@ static bool _am_ultrasonic_measure(int * distance_cm){
 end_measure:
 
     PORT_EXIT_CRITICAL;
-    *distance_cm = (echo_finish - echo_start) / ROUNDTRIP;
+    *distance_cm = (echo_finish - echo_start) * 10 / ROUNDTRIP;
     return ok;
 }
 
