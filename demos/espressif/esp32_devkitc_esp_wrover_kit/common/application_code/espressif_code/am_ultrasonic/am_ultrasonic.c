@@ -100,7 +100,7 @@ static bool _am_ultrasonic_measure(int * distance_cm){
 end_measure:
 
     PORT_EXIT_CRITICAL;
-    *distance_cm = (echo_finish - echo_start) * 10 / ROUNDTRIP;
+    *distance_cm = (echo_finish - echo_start) * 100 / ROUNDTRIP;
     return ok;
 }
 
@@ -115,7 +115,7 @@ static void _am_ultrasonic_task(void * pvParameters){
     printf("ULTRASONIC created\n");
     for (;;){
         if (_am_ultrasonic_measure(&curr_level)){
-            printf("level: %d cm\n", curr_level);
+            printf("level: %d mm\n", curr_level);
             if (_am_ultrasonic_compare(LEVEL_CMP_RANGE, reported_level, curr_level)){
                 reported_level = curr_level;
                 _am_ultrasonic_report(curr_level);
