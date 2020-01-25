@@ -1,10 +1,12 @@
 #include "am_ultrasonic.h"
 #include "_am_ultrasonic.h"
 #include "task_config.h"
+#include "am_level_info.h"
 
 #include "gpio_handler.h";
 #include "queue_conf.h"
 #include "rtc_config.h"
+#include "gpio_info.h"
 
 
 #define TRIGGER_LOW_DELAY 4
@@ -12,17 +14,19 @@
 #define PING_TIMEOUT 6000
 #define ROUNDTRIP 58
 #define MAX_DISTANCE_CM     450
-#define LEVEL_CMP_RANGE     20
 
-#define TRIGGER_PIN     22 
-#define ECHO_PIN        23
 #define BLINK_PIN       21
 
-#define READ_PERIOD_MS  30 * 1000        
 
+#define timeout_expired(start, len) ((esp_timer_get_time() - (start)) >= (len))
+
+static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+#define PORT_ENTER_CRITICAL portENTER_CRITICAL(&mux)
+#define PORT_EXIT_CRITICAL portEXIT_CRITICAL(&mux)
+#define RETURN_CRITICAL(RES) do { PORT_EXIT_CRITICAL; return RES; } while(0)
 
 void am_ultrasonic_init(){
-    gpio_handler_write(TRIGGER_PIN, 0);
+    gpio_handler_write(ULTRASONIC_TRIGGER, 1);
     
     ( void ) xTaskCreate( _am_ultrasonic_task,
                         TASK_ULTRASONIC_NAME,
@@ -36,32 +40,35 @@ static bool _am_ultrasonic_measure(int * distance_cm){
     int64_t echo_start = 0;
     int64_t echo_finish = 0;
     int64_t max_timeout  = 0;
-    bool time_exired = false;
+    bool ok = false;
 
     *distance_cm = -1;
+
+    PORT_ENTER_CRITICAL;
+
      // Ping: Low for 2..4 us, then high 10 us
-    gpio_handler_write(TRIGGER_PIN, 0);
+    gpio_handler_write(ULTRASONIC_TRIGGER, 0);
     ets_delay_us(TRIGGER_LOW_DELAY);
-    gpio_handler_write(TRIGGER_PIN, 1);
+    gpio_handler_write(ULTRASONIC_TRIGGER, 1);
     ets_delay_us(TRIGGER_HIGH_DELAY);
-    gpio_handler_write(TRIGGER_PIN, 0);
+    gpio_handler_write(ULTRASONIC_TRIGGER, 0);
 
     // Previous ping isn't ended
-    if (gpio_handler_read(ECHO_PIN))
+    if (gpio_handler_read(ULTRASONIC_ECHO))
     {
-        return false;
+        goto end_measure;
     }
 
     echo_start = esp_timer_get_time();
     // Wait for echo
-    while (!gpio_get_level(ECHO_PIN))
+    while (!gpio_get_level(ULTRASONIC_ECHO))
     {
-        echo_finish = esp_timer_get_time();
-
-        if (_am_ultrasonic_time_expired(echo_start, PING_TIMEOUT))
+        
+        if (timeout_expired(echo_start, PING_TIMEOUT*100))
         {
-            return false;
-        }
+            echo_start = esp_timer_get_time();
+            goto end_measure;
+        } 
     }
 
     //start to measure pulse width
@@ -69,45 +76,43 @@ static bool _am_ultrasonic_measure(int * distance_cm){
     echo_finish = echo_start;
     max_timeout = echo_start + MAX_DISTANCE_CM * ROUNDTRIP;
 
-    while (gpio_get_level(ECHO_PIN))
+    while (gpio_get_level(ULTRASONIC_ECHO))
     {
         echo_finish = esp_timer_get_time();
-        if (_am_ultrasonic_time_expired(echo_start, max_timeout))
+        if (timeout_expired(echo_start, max_timeout))
         {
-            return false;
+            goto end_measure;
         }
     }
 
+    ok = true;
 
+end_measure:
 
-    if (time_exired){
-        return -1;
-    }
-    else
-    {
-        return (echo_finish - echo_start) / ROUNDTRIP;
-    }
-    
+    PORT_EXIT_CRITICAL;
     *distance_cm = (echo_finish - echo_start) / ROUNDTRIP;
-    return true;
+    return ok;
 }
 
-static inline bool _am_ultrasonic_time_expired(int64_t start_time, int64_t ping_timeout){
-    return esp_timer_get_time() - start_time >= ping_timeout;
+static bool _am_ultrasonic_time_expired(int64_t start_time, int64_t ping_timeout){
+    return (esp_timer_get_time() - start_time) >= ping_timeout;
 }
 
 static void _am_ultrasonic_task(void * pvParameters){
+    bool b = false;
     int reported_level = 0;
     int curr_level = 0;
+    printf("ULTRASONIC created\n");
     for (;;){
         if (_am_ultrasonic_measure(&curr_level)){
+            printf("level: %d cm\n", curr_level);
             if (_am_ultrasonic_compare(LEVEL_CMP_RANGE, reported_level, curr_level)){
                 reported_level = curr_level;
                 _am_ultrasonic_report(curr_level);
             }
         }
 
-        vTaskDelay(READ_PERIOD_MS / portTICK_PERIOD_MS);
+        vTaskDelay(READ_PERIOD_S / portTICK_PERIOD_MS);
     }
 }
 

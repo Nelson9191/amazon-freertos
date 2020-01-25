@@ -3,10 +3,10 @@
 
 /*------------- ULTRASONIC---------------  */
 /*----INPUTS----*/
-#define ULTRASONIC_ECHO     23
+#define ULTRASONIC_ECHO     22
 
 /*----OUTPUTS----*/
-#define ULTRASONIC_TRIGGER  22
+#define ULTRASONIC_TRIGGER  23
 #define ULTRASONIC_BLINK    21
 #define ULTRASONIC_RELAY1   2
 #define ULTRASONIC_RELAY2   15

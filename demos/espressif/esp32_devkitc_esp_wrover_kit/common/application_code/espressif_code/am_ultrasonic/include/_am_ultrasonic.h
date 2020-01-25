@@ -8,7 +8,7 @@
 
 static bool _am_ultrasonic_measure(int * distance_cm);
 
-static inline bool _am_ultrasonic_time_expired(int64_t start_time, int64_t ping_timeout);
+static bool _am_ultrasonic_time_expired(int64_t start_time, int64_t ping_timeout);
 
 
 static void _am_ultrasonic_task(void * pvParameters);

@@ -52,6 +52,7 @@ int app_main( void ){
 
         WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();
 
+
         if(xWifiStatus == eWiFiSuccess){
             ( void ) xTaskCreate( wifi_config_task,
                                 TASK_WIFI_NAME,
@@ -70,7 +71,6 @@ int app_main( void ){
             
         } 
         
-         
     }
     else{
         printf("SYSTEM_Init Fail\n");

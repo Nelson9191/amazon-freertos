@@ -250,26 +250,35 @@ void gpio_handler_write_task(void * pvParameters){
 
 void gpio_handler_config_gpios(){
 
+/*-------------------OUTPUTS-------------------------*/
     gpio_config_t io_conf;
     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;//disable interrupt    
     io_conf.mode = GPIO_MODE_OUTPUT;
     io_conf.pin_bit_mask = gpio_handler_get_output_mask(); // Toma la mascara de bit de gpios de entrada
-    io_conf.pull_down_en = 0;//disable pull-down mode
+    io_conf.pull_down_en = 1;//disable pull-down mode
     io_conf.pull_up_en = 0;//disable pull-up mode    
     gpio_config(&io_conf);//configure GPIO with the given settings
 
+
+/*--------------------INPUTS------------------------*/
+
 #if ULTRASONIC_SENSOR
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
 #else
-    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;//interrupt of rising edge
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;//interrupt of rising edge
 #endif
+
     io_conf.pin_bit_mask = gpio_handler_get_input_mask();
     io_conf.mode = GPIO_MODE_INPUT;    
-    io_conf.pull_down_en = 0;//disable pull-down mode
-    io_conf.pull_up_en = 1;//enable pull-up mode
+    io_conf.pull_down_en = 1;//disable pull-down mode
+    io_conf.pull_up_en = 0;//enable pull-up mode
     gpio_config(&io_conf);
 
-    gpio_install_isr_service(0);//Activa llamada a ISR cuando hay interrupciones
+#if !ULTRASONIC_SENSOR
+    //Activa llamada a ISR cuando hay interrupciones
+    //solo para tarjeta grande
+    gpio_install_isr_service(0);
+    
     //gpio_isr_handler_add(GPIO_IN_D36_36, gpio_handler_ISR, (void*) GPIO_IN_D36_36);
     if(USE_GPIO_DI01){
         gpio_isr_handler_add(GPIO_DI01, gpio_handler_ISR, (void*) GPIO_DI01);
@@ -304,13 +313,19 @@ void gpio_handler_config_gpios(){
         //gpio_set_intr_type(GPIO_DI08, GPIO_INTR_ANYEDGE);
     }
 
+#endif    
+
 
 }
 
 static uint64_t gpio_handler_get_input_mask(){
     uint64_t input = 0;
 
-#if !ULTRASONIC_SENSOR
+#if ULTRASONIC_SENSOR
+
+    input |= 1ULL<<ULTRASONIC_ECHO;
+
+#else
 
     if(USE_GPIO_DI01){
         input |= 1ULL<<GPIO_DI01;
@@ -337,10 +352,6 @@ static uint64_t gpio_handler_get_input_mask(){
         input |= 1ULL<<GPIO_DI08;
     }
 
-#else
-
-    input |= 1ULL<<ULTRASONIC_ECHO;
-
 #endif                         
 
     return input;
@@ -350,19 +361,19 @@ static uint64_t gpio_handler_get_input_mask(){
 static uint64_t gpio_handler_get_output_mask(){
     uint64_t output = 0;
 
-#if !ULTRASONIC_SENSOR
-
-    output |= 1ULL<<GPIO_DO01;
-    output |= 1ULL<<GPIO_DO02;
-    output |= 1ULL<<GPIO_DO03;
-    output |= 1ULL<<GPIO_DO04;
-
-#else
+#if ULTRASONIC_SENSOR
 
     output |= 1ULL<<ULTRASONIC_TRIGGER;
     output |= 1ULL<<ULTRASONIC_BLINK;
     output |= 1ULL<<ULTRASONIC_RELAY1;
     output |= 1ULL<<ULTRASONIC_RELAY2;
+
+#else
+
+    output |= 1ULL<<GPIO_DO01;
+    output |= 1ULL<<GPIO_DO02;
+    output |= 1ULL<<GPIO_DO03;
+    output |= 1ULL<<GPIO_DO04;
 
 #endif    
 
