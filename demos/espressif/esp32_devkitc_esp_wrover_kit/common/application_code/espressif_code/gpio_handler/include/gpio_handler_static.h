@@ -31,4 +31,20 @@ Para un gpio (entrada) compara el estado actual con el que se ha reportado anter
 */
 static bool gpio_handler_compare_status(unsigned int gpio);
 
+/*
+Al arrancar el ESP, reporta el estado inicial de todas las entradas
+@Params: 
+@Return:
+*/
+static void gpio_handler_collect_gpios();
+
+/*
+Reporta el estado de un GPIO
+@Params: - gpio: gpio a reportar
+         - gpio_name: string con el nonmbre del gpio
+         - timestamp
+@Return:
+*/
+static void gpio_handler_report_gpio_status(uint32_t gpio, const char * gpio_name, uint32_t timestamp);
+
 #endif
