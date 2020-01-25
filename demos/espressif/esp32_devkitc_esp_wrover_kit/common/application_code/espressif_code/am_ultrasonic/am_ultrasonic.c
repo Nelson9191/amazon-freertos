@@ -37,12 +37,22 @@ void am_ultrasonic_init(){
 }
 
 static bool _am_ultrasonic_measure(int * distance_cm){
+    static bool blink;
     int64_t echo_start = 0;
     int64_t echo_finish = 0;
     int64_t max_timeout  = 0;
     bool ok = false;
 
     *distance_cm = -1;
+
+    if (blink){
+        blink = false;
+        gpio_handler_write(ULTRASONIC_BLINK, 1);
+    }
+    else{
+        blink = true;
+        gpio_handler_write(ULTRASONIC_BLINK, 0);
+    }
 
     PORT_ENTER_CRITICAL;
 
