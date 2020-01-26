@@ -5,6 +5,7 @@
 #include "task_config.h"
 #include "rtc_config.h"
 #include "queue_conf.h"
+#include "flags.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -46,8 +47,6 @@ void gpio_handler_init(){
                               TASK_WRITE_GPIO_PRIORITY,
                               NULL );                              
     }
-
-    gpio_handler_collect_gpios();
 }
 
 
@@ -90,6 +89,7 @@ void gpio_handler_read_task(void * pvParameters){
     uint32_t interrupt_time = 0;
     bool report_change = false;
     int status = 0;
+    bool report_initial_status = true;
 
     for(;;){
         while(xQueueReceiveFromISR(gpio_evt_queue, &gpio, NULL)){
@@ -195,6 +195,11 @@ void gpio_handler_read_task(void * pvParameters){
 
         }
 
+        if (report_initial_status && flags_is_timestamp_captured())
+        {
+            report_initial_status = false;
+            gpio_handler_collect_gpios();
+        }
     }
 }
 

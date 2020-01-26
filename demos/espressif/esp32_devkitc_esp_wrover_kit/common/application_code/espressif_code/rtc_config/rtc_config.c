@@ -4,12 +4,12 @@
 #include "freertos/semphr.h"
 #include <time.h>
 
+#include "flags.h"
+
 static SemaphoreHandle_t rtc_mutex;
 static TickType_t rtc_max_block_time;
 static uint32_t rtc_time;
 static uint32_t rtc_offset;
-
-
 
 
 void rtc_config_init(){
@@ -58,5 +58,6 @@ void rtc_config_set_time_(char * timeString, int len){
     printf("HORA CONFIGU**** %u\n", time_);
     rtc_config_set_time(time_);
     //rtc_time = time_;
+    flags_set_timestamp_captured();
 }
 

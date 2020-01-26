@@ -83,6 +83,28 @@ void flags_set_mqtt_connected(){
     _flags_give_mutex();
 }
 
+bool flags_is_timestamp_captured(){
+    bool ret = false;
+    if(_flags_take_mutex()){
+        ret = CONTROL_FLAGS.timestamp_captured ? true : false;
+    }
+    _flags_give_mutex();
+    return ret;
+}
+
+void flags_set_timestamp_captured(){
+    if(_flags_take_mutex()){
+        CONTROL_FLAGS.timestamp_captured = 1;
+    }
+    _flags_give_mutex();
+}
+
+void flags_reset_timestamp_captured(){
+    if(_flags_take_mutex()){
+        CONTROL_FLAGS.timestamp_captured = 0;
+    }
+    _flags_give_mutex();
+}
 
 static bool _flags_take_mutex(){
     if(xSemaphoreTake(flags_mutex, flags_max_block_time) == pdPASS){

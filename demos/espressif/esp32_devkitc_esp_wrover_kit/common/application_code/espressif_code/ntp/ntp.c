@@ -44,7 +44,7 @@ bool ntp_get_date(){
         return false;
     }
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(3000 / portTICK_PERIOD_MS);
     if(udp_recv_msg(socket, NTP_HOST, NTP_HOST_PORT, packetBuffer, 48) > 0){
         int32_t tmp = 0;
         tmp |= packetBuffer[40] << 24;
@@ -75,7 +75,11 @@ static void ntp_task(void * pvParameters){
         vTaskDelay(5000 / portTICK_PERIOD_MS);
         if(ntp_get_date()){
             printf("ntp_task DELETE\n");
+            flags_set_timestamp_captured();
             vTaskDelete(NULL);
+        }
+        else{
+            esp_restart();
         }
     }
 }

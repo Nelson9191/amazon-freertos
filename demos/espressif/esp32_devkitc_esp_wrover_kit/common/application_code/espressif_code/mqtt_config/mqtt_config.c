@@ -88,6 +88,11 @@ void mqtt_config_task(void * pvParameters){
             continue;
         }
 
+        if (!flags_is_timestamp_captured()){
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            continue;
+        }
+
         if(!flags_is_mqtt_connected()){
             printf("MQTT disconnected\n");
             vTaskDelay(5000 / portTICK_PERIOD_MS);
