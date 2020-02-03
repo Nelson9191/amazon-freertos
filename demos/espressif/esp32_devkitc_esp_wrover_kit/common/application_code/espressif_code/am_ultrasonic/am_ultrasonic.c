@@ -116,7 +116,7 @@ static void _am_ultrasonic_task(void * pvParameters){
     for (;;){
         if (_am_ultrasonic_measure(&curr_level)){
             printf("level: %d mm\n", curr_level);
-            if (_am_ultrasonic_compare(LEVEL_CMP_RANGE, reported_level, curr_level)){
+            if (_am_ultrasonic_compare(LEVEL_CMP_RANGE_MM, reported_level, curr_level)){
                 reported_level = curr_level;
                 _am_ultrasonic_report(curr_level);
             }

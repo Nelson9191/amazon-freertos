@@ -126,7 +126,7 @@ void am_level_task(void * pvParameters){
     int curr_level;
     for (;;){
         if (am_level_read(&curr_level)){
-            if (am_level_compare(LEVEL_CMP_RANGE, reported_level, curr_level)){
+            if (am_level_compare(LEVEL_CMP_RANGE_MM, reported_level, curr_level)){
                 reported_level = curr_level;
                 am_level_report(curr_level);
             }
