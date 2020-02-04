@@ -2,8 +2,8 @@
 #define _WIFI_INFO_H_
 
 
-#define WIFI_SSID    "ACUAMATIC1"
-#define WIFI_PASSWORD   "43227577"
+#define WIFI_SSID       "ACUASMART"
+#define WIFI_PASSWORD   "ACUAMATIC"
 #define WIFI_SECURITY   eWiFiSecurityWPA2
 
 /*
