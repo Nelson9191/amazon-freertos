@@ -129,7 +129,7 @@ static void _am_ultrasonic_task(void * pvParameters){
 static void _am_ultrasonic_report(int level){
     struct MqttMsg mqtt_msg;
 
-    snprintf(mqtt_msg.name, 10, "%s", "Nivel");
+    snprintf(mqtt_msg.name, 10, "%s", "AI01");
     mqtt_msg.status = level;
     mqtt_msg.timestamp = rtc_config_get_time();
     queue_conf_send_mqtt(mqtt_msg);

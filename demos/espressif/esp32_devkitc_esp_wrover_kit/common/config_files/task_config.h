@@ -39,4 +39,11 @@
 
 
 
+#define TASK_MODBUS_NAME            "Modbus"
+#define TASK_MODBUS_STACK_SIZE      2000
+#define TASK_MODBUS_PRIORITY        2
+
+
+
+
 #endif
