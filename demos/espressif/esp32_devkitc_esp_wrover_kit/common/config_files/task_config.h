@@ -38,5 +38,10 @@
 #define TASK_ULTRASONIC_PRIORITY        10
 
 
+#define TASK_MODBUS_NAME            "MODBUS"
+#define TASK_MODBUS_STACK_SIZE      2000
+#define TASK_MODBUS_PRIORITY        10
+
+
 
 #endif

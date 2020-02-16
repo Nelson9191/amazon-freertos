@@ -21,6 +21,7 @@
 #include "queue_conf.h"
 #include "ntp.h"
 #include "am_ultrasonic.h"
+#include "modbus_master.h"
 
 /* Logging Task Defines. */
 #define mainLOGGING_MESSAGE_QUEUE_LENGTH    ( 32 )
@@ -44,7 +45,7 @@ int app_main( void ){
         ntp_init();
 
 #if ULTRASONIC_SENSOR
-    am_ultrasonic_init();
+    //am_ultrasonic_init();
 #else
     analog_handler_init();
 #endif        
@@ -53,7 +54,8 @@ int app_main( void ){
         WIFIReturnCode_t xWifiStatus = wifi_config_start_driver();
 
 
-        if(xWifiStatus == eWiFiSuccess){
+/*
+         if(xWifiStatus == eWiFiSuccess){
             ( void ) xTaskCreate( wifi_config_task,
                                 TASK_WIFI_NAME,
                                 TASK_WIFI_STACK_SIZE,
@@ -69,7 +71,10 @@ int app_main( void ){
                                 TASK_MQTT_SUBS_PRIORITY,
                                 NULL );               
             
-        } 
+        }  
+        */
+
+        modbus_master_init();
         
     }
     else{
