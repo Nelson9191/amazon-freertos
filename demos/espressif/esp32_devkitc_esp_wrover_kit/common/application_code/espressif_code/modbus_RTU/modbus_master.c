@@ -9,6 +9,7 @@
 #include "driver/uart.h"
 //#include "utils.h"
 #include "task_config.h"
+#include "gpio_info.h"
 
 #include "modbus_master.h"
 #include "gpio_handler.h"
@@ -53,6 +54,13 @@ static void _modbus_task(void * pvParameters)
     for(;;)
     {
 
+      /*   printf("Apagó\n");   
+          gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 0);
+         vTaskDelay(5000 / portTICK_PERIOD_MS);
+         printf("Prendió\n");
+         gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 1);
+
+            vTaskDelay(5000 / portTICK_PERIOD_MS);//*/
         read_all_coils();
         vTaskDelay(3000 / portTICK_PERIOD_MS);
         read_all_inputs();
@@ -62,12 +70,14 @@ static void _modbus_task(void * pvParameters)
         read_all_input_reg();
         vTaskDelay(3000 / portTICK_PERIOD_MS);    
         //write_coils();
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);
         //write_regs();
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
-        unknown_func();
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);
+       // unknown_func();
 
-        vTaskDelay(MODBUS_PERIOD_S / portTICK_PERIOD_MS);
+        //vTaskDelay(MODBUS_PERIOD_S / portTICK_PERIOD_MS);//*/
+
+
     }
 
 }
@@ -155,7 +165,7 @@ void read_all_coils(void)
    }
    else
    {
-      printf("<-**Exception %X**->\r\n\r\n", modbus_rx.error);
+      printf("<-**Exception= %X**->\r\n\r\n", modbus_rx.error);
    }
 }
 

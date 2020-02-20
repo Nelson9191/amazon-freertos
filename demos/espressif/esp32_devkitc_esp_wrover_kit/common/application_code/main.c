@@ -38,7 +38,7 @@ int app_main( void ){
         nvs_storage_init();    
         authentication_init();
         queue_conf_init();
-        mqtt_config_init();
+        //mqtt_config_init();
         rtc_config_init();
         wifi_config_init();
         gpio_handler_init();
@@ -47,7 +47,7 @@ int app_main( void ){
 #if ULTRASONIC_SENSOR
     //am_ultrasonic_init();
 #else
-    analog_handler_init();
+  //  analog_handler_init();
 #endif        
 
 

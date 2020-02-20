@@ -12,6 +12,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+//#include 
 #include "driver/gpio.h"
 
 static QueueHandle_t gpio_evt_queue;
@@ -367,6 +368,7 @@ static uint64_t gpio_handler_get_output_mask(){
     output |= 1ULL<<ULTRASONIC_BLINK;
     output |= 1ULL<<ULTRASONIC_RELAY1;
     output |= 1ULL<<ULTRASONIC_RELAY2;
+    output |= 1ULL<<MODBUS_SERIAL_ENABLE_PIN;
 
 #else
 

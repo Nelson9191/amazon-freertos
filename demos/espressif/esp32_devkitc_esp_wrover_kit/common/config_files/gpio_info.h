@@ -10,6 +10,7 @@
 #define ULTRASONIC_BLINK    21
 #define ULTRASONIC_RELAY1   2
 #define ULTRASONIC_RELAY2   15
+#define MODBUS_SERIAL_ENABLE_PIN  12
 
 
 #define GPIO_DI01      14   /* GPIO12 */

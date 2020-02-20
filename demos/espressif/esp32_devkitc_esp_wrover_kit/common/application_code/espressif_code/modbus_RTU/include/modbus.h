@@ -1,5 +1,3 @@
-
-
 #ifndef _MODBUS_H_
 #define _MODBUS_H_
 
@@ -15,9 +13,7 @@
 
 #define MODBUS_TYPE_MASTER  99999
 #define MODBUS_TYPE_SLAVE   88888
-#define MODBUS_INT_RDA      77777
-#define MODBUS_INT_RDA2     66666
-#define MODBUS_INT_EXT      55555
+
 #define MODBUS_SERIAL       UART_NUM_1
 
 #ifndef MODBUS_TYPE
@@ -48,9 +44,9 @@
 #define MODBUS_SERIAL_RTS_PIN       UART_PIN_NO_CHANGE // Pin de transmetre dades 
 #endif
 
-#ifndef MODBUS_SERIAL_ENABLE_PIN
+/*#ifndef MODBUS_SERIAL_ENABLE_PIN
 #define MODBUS_SERIAL_ENABLE_PIN   GPIO_NUM_7   // Pin DE de control.  RX low, TX high.
-#endif
+#endif //*/
 
 #ifndef MODBUS_SERIAL_RX_ENABLE
 #define MODBUS_SERIAL_RX_ENABLE    0   // Controls RE pin.  Should keep low.
@@ -82,16 +78,11 @@
 #endif
 
 
-#if(MODBUS_SERIAL_INT_SOURCE != MODBUS_INT_EXT)
-#byte TXSTA=getenv("sfr:TXSTA")
-#bit TRMT=TXSTA.1
 
 
-#define WAIT_FOR_HW_BUFFER()\
-{\
-    while(!TRMT);\
-}   
-#endif
+#define TTW 20
+
+
 
 
 //***************************************************************************
@@ -209,7 +200,7 @@ enum{
  * La funció struct ens serveix per tenir variables ordenades per grups
  *  ********************************************************************/
 
-struct
+volatile struct
 {
     int8_t address;
     int8_t len;                                //number of bytes in the message received
@@ -233,9 +224,12 @@ void incomming_modbus_serial(void);
 void modbus_serial_send_stop(void);
 int modbus_kbhit(void);
 void modbus_serial_send_start(int8_t, int8_t);
-void CRC16 (uint8_t * puchMsg, int8_t usDataLen);
+uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen);
 uint16_t crc_modbus( const unsigned char *input_str, int num_bytes );
 
+
+
+void incomming_modbus_serial_new(void);
 //MASTER API FUNCTIONS PROTOTYPES:
 //All master API functions return 0 on success. 
 
