@@ -3,7 +3,7 @@
 //#include "modbus.h"
 
 #define MODBUS_PERIOD_S       1 * 1000   
-#define MODBUS_SLAVE_ADDRESS 0xA1
+#define MODBUS_SLAVE_ADDRESS 0x0A
 
 
 void modbus_master_init(void);

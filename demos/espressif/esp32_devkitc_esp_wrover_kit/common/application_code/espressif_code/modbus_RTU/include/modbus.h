@@ -104,7 +104,7 @@ typedef enum _exception
     GATEWAY_PATH_UNAVAILABLE=10,
     GATEWAY_TARGET_NO_RESPONSE=11,
     TIMEOUT=12
-    } exception;
+} exception;
 
 
 
@@ -161,25 +161,25 @@ typedef struct _modbus_write_sub_request_rsp
  
  typedef enum _function
  {
-     FUNC_READ_COILS=0x01,
-     FUNC_READ_DISCRETE_INPUT=0x02,
-     FUNC_READ_HOLDING_REGISTERS=0x03,
-     FUNC_READ_INPUT_REGISTERS=0x04,
-     FUNC_WRITE_SINGLE_COIL=0x05,
-     FUNC_WRITE_SINGLE_REGISTER=0x06,
-     FUNC_READ_EXCEPTION_STATUS=0x07,
-     FUNC_DIAGNOSTICS=0x08,
-     FUNC_GET_COMM_EVENT_COUNTER=0x0B,
-     FUNC_GET_COMM_EVENT_LOG=0x0C,
-     FUNC_WRITE_MULTIPLE_COILS=0x0F,
-     FUNC_WRITE_MULTIPLE_REGISTERS=0x10,
-     FUNC_REPORT_SLAVE_ID=0x11,
-     FUNC_READ_FILE_RECORD=0x14,
-     FUNC_WRITE_FILE_RECORD=0x15,
-     FUNC_MASK_WRITE_REGISTER=0x16,
-     FUNC_READ_WRITE_MULTIPLE_REGISTERS=0x17,
-     FUNC_READ_FIFO_QUEUE=0x18
-     } function;
+    FUNC_READ_COILS=0x01,
+    FUNC_READ_DISCRETE_INPUT=0x02,
+    FUNC_READ_HOLDING_REGISTERS=0x03,
+    FUNC_READ_INPUT_REGISTERS=0x04,
+    FUNC_WRITE_SINGLE_COIL=0x05,
+    FUNC_WRITE_SINGLE_REGISTER=0x06,
+    FUNC_READ_EXCEPTION_STATUS=0x07,
+    FUNC_DIAGNOSTICS=0x08,
+    FUNC_GET_COMM_EVENT_COUNTER=0x0B,
+    FUNC_GET_COMM_EVENT_LOG=0x0C,
+    FUNC_WRITE_MULTIPLE_COILS=0x0F,
+    FUNC_WRITE_MULTIPLE_REGISTERS=0x10,
+    FUNC_REPORT_SLAVE_ID=0x11,
+    FUNC_READ_FILE_RECORD=0x14,
+    FUNC_WRITE_FILE_RECORD=0x15,
+    FUNC_MASK_WRITE_REGISTER=0x16,
+    FUNC_READ_WRITE_MULTIPLE_REGISTERS=0x17,
+    FUNC_READ_FIFO_QUEUE=0x18
+} function;
 
 
 // Estats de la recepció de trames MODBUS
@@ -207,7 +207,7 @@ volatile struct
     function func;                           //the function of the message received
     exception error;                         //error recieved, if any
     int8_t data[MODBUS_SERIAL_RX_BUFFER_SIZE]; //data of the message received
-    } modbus_rx;    
+} modbus_rx;    
     
     
  
@@ -226,6 +226,7 @@ int modbus_kbhit(void);
 void modbus_serial_send_start(int8_t, int8_t);
 uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen);
 uint16_t crc_modbus( const unsigned char *input_str, int num_bytes );
+bool modbus_read_hw_buffer();
 
 
 
@@ -233,7 +234,8 @@ void incomming_modbus_serial_new(void);
 //MASTER API FUNCTIONS PROTOTYPES:
 //All master API functions return 0 on success. 
 
-exception modbus_read_coils(int8_t, int16_t, int16_t);
+bool modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity);
+
 exception modbus_read_discrete_input(int8_t, int16_t, int16_t);
 exception modbus_read_holding_registers(int8_t, int16_t, int16_t);
 exception modbus_read_input_registers(int8_t, int16_t, int16_t);

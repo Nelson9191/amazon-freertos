@@ -21,6 +21,9 @@ int modbus_serial_state = MODBUS_GETADDY;
 volatile bool Valid_data_Flag=MODBUS_FALSE;
 
 uint8_t Modbus_RX_BUFFER[MODBUS_SERIAL_RX_BUFFER_SIZE];
+
+
+
 int len=0;        
        // memset(data_buffer, '\0', MODBUS_SERIAL_RX_BUFFER_SIZE+10);
 
@@ -325,72 +328,82 @@ void incomming_modbus_serial_new(void)
         }
 }//*/
 
-int WAIT_FOR_HW_BUFFER(void)
+bool modbus_read_hw_buffer()
 {
-        
-        uint8_t index=0;
-        uint16_t broke=0;
-        printf("Listening \n");
-        while ((++broke<150)&(len<=0))
+        uint8_t index = 0;
+        uint16_t broke = 0;
+        int len = 0;
+        bool ok = false;
+
+        uint8_t * buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+        if (!buffer){
+                modbus_rx.error = TIMEOUT; //Crear código para malloc
+                return false;
+        }
+
+        memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+        while ((++broke<150) && (len<=0))
         {
                 vTaskDelay(10 / portTICK_PERIOD_MS);
-                len = uart_read_bytes(UART_NUM_1,Modbus_RX_BUFFER, len, 100);
+                uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
+                if(len){
+                        len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
+                }
         }
-        printf("Len= %x \n",len);
         
-       // len = uart_read_bytes(UART_NUM_1, data_buffer, len, 3500000/MODBUS_SERIAL_BAUD);
-       // len = uart_read_bytes(UART_NUM_2, (uint8_t *)Modbus_RX_BUFFER, len, 100);
-             
-      //  broke=0;
+        printf("Len= %d \n str: %*.s\n",len, len, buffer);
+
         if(len <= 0)
         {
-           // free(data_buffer);    
-            modbus_rx.error=TIMEOUT;
-            printf("Modbus Timed out \n");
-            return TIMEOUT;
+                modbus_rx.error = TIMEOUT;
+                printf("Modbus Timed out \n");
+                ok = false;
         }
-        else
-        {
-            modbus_rx.address= Modbus_RX_BUFFER[0];
-            modbus_rx.func = Modbus_RX_BUFFER[1]; 
-            while((index++)<=len-4)
-                modbus_rx.data[index] = Modbus_RX_BUFFER[index+2]; 
-            uint16_t CRC_RCV = (uint16_t)((Modbus_RX_BUFFER[len-2])<<8 )|| (Modbus_RX_BUFFER[len-1]);
+        else{
+                modbus_rx.error = 0;
+                modbus_rx.address = buffer[0];
+                modbus_rx.func = buffer[1];
+                
+                for (int i = 0; i < len - 2; i++){
+                        modbus_rx.data[i] = buffer[i + 2];
+                        printf("-%x", buffer[i + 2]);
+                }
+                
+                printf("\n");
 
-            uint16_t CRC_RTN=CRC16 (Modbus_RX_BUFFER, len);
+                
+                uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 )|| (buffer[len-1]);
 
-            Valid_data_Flag=(CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
-            printf("Data REceived: \n");  
-            printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), Modbus_RX_BUFFER, len);
-                //uart_flush(UART_NUM_1);
-            return 0;   
+                uint16_t CRC_RTN = CRC16 (buffer, len - 3);
+                printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
+                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN<<8), (uint8_t)(CRC_RTN));
+
+                Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
+                //printf("Data REceived: \n");  
+                //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
+                ok = CRC_RTN == CRC_RCV;   
         }
-       
-       // free(data_buffer);
-        
-        
+
+        free(buffer);
+        return ok;
 }   
 
 
 void modbus_serial_send_stop(void)
 {
         int8_t crc_low, crc_high;
-        crc_high=modbus_serial_crc.b[1];  //Guardem el valor del Checksum MSB
-        crc_low=modbus_serial_crc.b[0];   //Guardem el valor del checksum LSB
+        
+        crc_high = modbus_serial_crc.b[1];  //Guarda el valor del Checksum MSB
+        crc_low = modbus_serial_crc.b[0];   //Guarda el valor del checksum LSB
         //Per defecte es calcula el CRC d'aquests dos valors però enviarem a la UART
         //directement el valor CRC high i low.
         modbus_serial_putc(crc_high);   // Enviem aquests valors a la UART 
         modbus_serial_putc(crc_low);
         
-        
-        
-        
-       // RCV_ON();     //Activa la recepció
-      //  #if(MODBUS_SERIAL_ENABLE_PIN!=0) 
-         gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 0);
-      //  #endif
+        gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 0);
         ets_delay_us(3500000/MODBUS_SERIAL_BAUD); //3.5 character delay
-        WAIT_FOR_HW_BUFFER();
         modbus_serial_crc.d=0xFFFF;
 }
 
@@ -466,8 +479,9 @@ read_coils
 */
 
 
-exception modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity)
+bool modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity)
 {
+        bool ok;
         uint8_t msg[] = {address, FUNC_READ_COILS, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)};
@@ -483,9 +497,9 @@ exception modbus_read_coils(int8_t address, int16_t start_address, int16_t quant
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         
         modbus_serial_send_stop();
-        //MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-       // WAIT_FOR_HW_BUFFER();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+
+        return ok;
 }
 
 

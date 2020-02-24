@@ -62,13 +62,14 @@ static void _modbus_task(void * pvParameters)
 
             vTaskDelay(5000 / portTICK_PERIOD_MS);//*/
         read_all_coils();
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
-        read_all_inputs();
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
-        read_all_holding();
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
-        read_all_input_reg();
-        vTaskDelay(3000 / portTICK_PERIOD_MS);    
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        //read_all_inputs();
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);
+        //read_all_holding();
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);
+        //read_all_input_reg();
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);    
+        
         //write_coils();
         //vTaskDelay(3000 / portTICK_PERIOD_MS);
         //write_regs();
@@ -155,7 +156,7 @@ int8_t swap_bits(int8_t c)
 void read_all_coils(void)
 {
    printf("Coils:\r\n");
-   if(!(modbus_read_coils(MODBUS_SLAVE_ADDRESS,0,8)))
+   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS,0,8))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
