@@ -235,10 +235,11 @@ void incomming_modbus_serial_new(void);
 //All master API functions return 0 on success. 
 
 bool modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity);
+bool modbus_read_discrete_input(int8_t, int16_t, int16_t);
 
-exception modbus_read_discrete_input(int8_t, int16_t, int16_t);
-exception modbus_read_holding_registers(int8_t, int16_t, int16_t);
-exception modbus_read_input_registers(int8_t, int16_t, int16_t);
+bool modbus_read_holding_registers(int8_t, int16_t, int16_t);
+bool modbus_read_input_registers(int8_t, int16_t, int16_t);
+
 exception modbus_write_single_coil(int8_t,int16_t, int);
 exception modbus_write_single_register(int8_t, int16_t, int16_t);
 exception modbus_read_exception_status(int8_t);

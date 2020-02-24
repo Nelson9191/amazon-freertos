@@ -335,25 +335,25 @@ bool modbus_read_hw_buffer()
         int len = 0;
         bool ok = false;
 
-        uint8_t * buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+        uint8_t * Mod_buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
 
-        if (!buffer){
+        if (!Mod_buffer){
                 modbus_rx.error = TIMEOUT; //Crear código para malloc
                 return false;
         }
 
-        memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+        memset(Mod_buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
 
         while ((++broke<150) && (len<=0))
         {
                 vTaskDelay(10 / portTICK_PERIOD_MS);
                 uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
                 if(len){
-                        len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
+                        len = uart_read_bytes(UART_NUM_1,Mod_buffer, len, 100);
                 }
         }
         
-        printf("Len= %d \n str: %*.s\n",len, len, buffer);
+        printf("Len= %d \n str: %*.s\n",len, len, Mod_buffer);
 
         if(len <= 0)
         {
@@ -361,24 +361,25 @@ bool modbus_read_hw_buffer()
                 printf("Modbus Timed out \n");
                 ok = false;
         }
-        else{
+        else
+        {
                 modbus_rx.error = 0;
-                modbus_rx.address = buffer[0];
-                modbus_rx.func = buffer[1];
+                modbus_rx.address = Mod_buffer[0];
+                modbus_rx.func = Mod_buffer[1];
                 
-                for (int i = 0; i < len - 2; i++){
-                        modbus_rx.data[i] = buffer[i + 2];
-                        printf("-%x", buffer[i + 2]);
+                for (int i = 0; i < len - 4; i++){
+                        modbus_rx.data[i] = Mod_buffer[i + 2];
+                        printf("-%x", Mod_buffer[i + 2]);
                 }
                 
                 printf("\n");
 
-                
-                uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 )|| (buffer[len-1]);
+                modbus_rx.len=len-4;
+                uint16_t CRC_RCV = (uint16_t)((Mod_buffer[len-2])<<8 )|| (Mod_buffer[len-1]);
 
-                uint16_t CRC_RTN = CRC16 (buffer, len - 3);
-                printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
-                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN<<8), (uint8_t)(CRC_RTN));
+                uint16_t CRC_RTN = CRC16 (Mod_buffer, len - 2);
+                printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
+                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
 
                 Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
                 //printf("Data REceived: \n");  
@@ -386,7 +387,7 @@ bool modbus_read_hw_buffer()
                 ok = CRC_RTN == CRC_RCV;   
         }
 
-        free(buffer);
+        free(Mod_buffer);
         return ok;
 }   
 
@@ -514,8 +515,10 @@ bool modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity)
 */
 
 
-exception modbus_read_discrete_input(int8_t address, int16_t start_address, int16_t quantity)
+bool modbus_read_discrete_input(int8_t address, int16_t start_address, int16_t quantity)
 {       
+
+        bool ok;
         uint8_t msg[] = {address, FUNC_READ_DISCRETE_INPUT, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)};    
@@ -530,8 +533,8 @@ exception modbus_read_discrete_input(int8_t address, int16_t start_address, int1
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+         ok = modbus_read_hw_buffer();
+        return ok;
         
 }
 
@@ -546,8 +549,9 @@ read_holding_registers
                 int16      quantity           Amount of addresses to read
         Output: exception                     0 if no error, else the exception*/
         
-exception modbus_read_holding_registers(int8_t address, int16_t start_address, int16_t quantity)
+bool modbus_read_holding_registers(int8_t address, int16_t start_address, int16_t quantity)
 {
+        bool ok;
         uint8_t msg[] = {address, FUNC_READ_HOLDING_REGISTERS, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)};
@@ -562,8 +566,9 @@ exception modbus_read_holding_registers(int8_t address, int16_t start_address, i
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+       // MODBUS_SERIAL_WAIT_FOR_RESPONSE();
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -576,8 +581,9 @@ exception modbus_read_holding_registers(int8_t address, int16_t start_address, i
         int16      quantity           Amount of addresses to read
         Output:    exception                     0 if no error, else the exception
 */
-exception modbus_read_input_registers(int8_t address, int16_t start_address, int16_t quantity)
+bool modbus_read_input_registers(int8_t address, int16_t start_address, int16_t quantity)
 {
+        bool ok;
         uint8_t msg[] = {address, FUNC_READ_INPUT_REGISTERS, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)}; 
@@ -592,8 +598,10 @@ exception modbus_read_input_registers(int8_t address, int16_t start_address, int
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+      /*  MODBUS_SERIAL_WAIT_FOR_RESPONSE();
+        return modbus_rx.error;//*/
+        ok = modbus_read_hw_buffer();
+        return ok;
         
 }
 
