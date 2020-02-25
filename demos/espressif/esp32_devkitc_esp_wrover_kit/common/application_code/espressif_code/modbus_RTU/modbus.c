@@ -334,6 +334,7 @@ bool modbus_read_hw_buffer()
         uint16_t broke = 0;
         int len = 0;
         bool ok = false;
+        Valid_data_Flag=0;
 
         uint8_t * Mod_buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
 
@@ -373,18 +374,25 @@ bool modbus_read_hw_buffer()
                 }
                 
                 printf("\n");
-
-                modbus_rx.len=len-4;
                 uint16_t CRC_RCV = (uint16_t)((Mod_buffer[len-2])<<8 )|| (Mod_buffer[len-1]);
-
                 uint16_t CRC_RTN = CRC16 (Mod_buffer, len - 2);
-                printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
-                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-
                 Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
-                //printf("Data REceived: \n");  
-                //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
-                ok = CRC_RTN == CRC_RCV;   
+                if(Valid_data_Flag)
+                {
+                        modbus_rx.len=len-4;
+                        
+                        printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
+                        printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
+
+                        //printf("Data REceived: \n");  
+                        //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
+                        ok = CRC_RTN == CRC_RCV;   
+                }
+                else
+                {
+                   memset( modbus_rx.data,'\0',len-4); 
+                   modbus_rx.len=0;   
+                }
         }
 
         free(Mod_buffer);
