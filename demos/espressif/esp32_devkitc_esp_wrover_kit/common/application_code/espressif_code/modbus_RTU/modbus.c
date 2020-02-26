@@ -338,16 +338,16 @@ bool modbus_read_hw_buffer()
 
         uint8_t * Mod_buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
 
-        if (!Mod_buffer){
+        if (!Mod_buffer)
+        {
                 modbus_rx.error = TIMEOUT; //Crear código para malloc
                 return false;
         }
-
         memset(Mod_buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
 
-        while ((++broke<150) && (len<=0))
+        while ((++broke<15) && (len<=0))
         {
-                vTaskDelay(10 / portTICK_PERIOD_MS);
+                vTaskDelay(100 / portTICK_PERIOD_MS);
                 uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
                 if(len){
                         len = uart_read_bytes(UART_NUM_1,Mod_buffer, len, 100);
@@ -367,31 +367,42 @@ bool modbus_read_hw_buffer()
                 modbus_rx.error = 0;
                 modbus_rx.address = Mod_buffer[0];
                 modbus_rx.func = Mod_buffer[1];
-                
+
+
+               
                 for (int i = 0; i < len - 4; i++){
                         modbus_rx.data[i] = Mod_buffer[i + 2];
                         printf("-%x", Mod_buffer[i + 2]);
                 }
+                 //****************************** leer exepciones
+                if(modbus_rx.func & 0x80) 
+                {
+                        modbus_rx.error = modbus_rx.data[0];
+                        modbus_rx.len=1;
+                }
+                //***********************************************
                 
                 printf("\n");
-                uint16_t CRC_RCV = (uint16_t)((Mod_buffer[len-2])<<8 )|| (Mod_buffer[len-1]);
+                uint16_t CRC_RCV = (uint16_t)((Mod_buffer[len-2])<<8 )| (Mod_buffer[len-1]);
                 uint16_t CRC_RTN = CRC16 (Mod_buffer, len - 2);
-                Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
-                if(Valid_data_Flag)
+                Valid_data_Flag = (CRC_RTN == CRC_RCV)? MODBUS_TRUE:MODBUS_FALSE;
+                printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
+                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
+                       
+                if(Valid_data_Flag==1)
                 {
                         modbus_rx.len=len-4;
-                        
-                        printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
-                        printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-
+                      //  printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
+                      //  printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
                         //printf("Data REceived: \n");  
                         //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
                         ok = CRC_RTN == CRC_RCV;   
                 }
                 else
                 {
-                   memset( modbus_rx.data,'\0',len-4); 
-                   modbus_rx.len=0;   
+                        printf("No valid Data flag \n");
+                       memset( modbus_rx.data,'\0',len-4); 
+                       modbus_rx.len=0;   
                 }
         }
 
