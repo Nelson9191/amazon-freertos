@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+//#include "modbus_master.h"
+
+
 
 #define byte        uint8_t
 #define MODBUS_TRUE        1
@@ -199,8 +202,7 @@ enum{
  * Aquest struct és un conjunt de bytes que modifiquem en la recepció 
  * La funció struct ens serveix per tenir variables ordenades per grups
  *  ********************************************************************/
-
-volatile struct
+typedef struct
 {
     int8_t address;
     int8_t len;                                //number of bytes in the message received
@@ -217,7 +219,7 @@ volatile struct
 
 uint8_t make8(uint16_t,uint8_t);
 void RCV_ON(void);    
-void modbus_init(void) ;
+void modbus_init(void);
 void modbus_enable_timeout(int);
 void modbus_timeout_now(void); 
 void incomming_modbus_serial(void); 
@@ -240,20 +242,20 @@ bool modbus_read_discrete_input(int8_t, int16_t, int16_t);
 bool modbus_read_holding_registers(int8_t, int16_t, int16_t);
 bool modbus_read_input_registers(int8_t, int16_t, int16_t);
 
-exception modbus_write_single_coil(int8_t,int16_t, int);
-exception modbus_write_single_register(int8_t, int16_t, int16_t);
-exception modbus_read_exception_status(int8_t);
-exception modbus_diagnostics(int8_t, int16_t, int16_t);
-exception modbus_get_comm_event_counter(int8_t);
-exception modbus_get_comm_event_log(int8_t);
-exception modbus_write_multiple_coils(int8_t, int16_t, int16_t,int8_t *);
-exception modbus_write_multiple_registers(int8_t, int16_t, int16_t,int16_t *);
-exception modbus_report_slave_id(int8_t);
-exception modbus_read_file_record(int8_t, int8_t, modbus_read_sub_request *);
-exception modbus_write_file_record(int8_t, int8_t, modbus_write_sub_request *);
-exception modbus_mask_write_register(int8_t, int16_t ,int16_t , int16_t );
-exception modbus_read_write_multiple_registers(int8_t , int16_t ,int16_t , int16_t ,int16_t ,int16_t *);
-exception modbus_read_FIFO_queue(int8_t , int16_t );
+uint8_t modbus_write_single_coil(int8_t,int16_t, int);
+uint8_t modbus_write_single_register(int8_t, int16_t, int16_t);
+uint8_t modbus_read_uint8_t_status(int8_t);
+uint8_t modbus_diagnostics(int8_t, int16_t, int16_t);
+uint8_t modbus_get_comm_event_counter(int8_t);
+uint8_t modbus_get_comm_event_log(int8_t);
+uint8_t modbus_write_multiple_coils(int8_t, int16_t, int16_t,int8_t *);
+uint8_t modbus_write_multiple_registers(int8_t, int16_t, int16_t,int16_t *);
+uint8_t modbus_report_slave_id(int8_t);
+uint8_t modbus_read_file_record(int8_t, int8_t, modbus_read_sub_request *);
+uint8_t modbus_write_file_record(int8_t, int8_t, modbus_write_sub_request *);
+uint8_t modbus_mask_write_register(int8_t, int16_t ,int16_t , int16_t );
+uint8_t modbus_read_write_multiple_registers(int8_t , int16_t ,int16_t , int16_t ,int16_t ,int16_t *);
+uint8_t modbus_read_FIFO_queue(int8_t , int16_t );
 //END MASTER API FUNCTIONS PROTYPE
 
 //*************************************************************

@@ -18,7 +18,6 @@ int modbus_serial_new=0;
 
 int modbus_serial_state = MODBUS_GETADDY;
 
-volatile bool Valid_data_Flag=MODBUS_FALSE;
 
 uint8_t Modbus_RX_BUFFER[MODBUS_SERIAL_RX_BUFFER_SIZE];
 
@@ -70,152 +69,9 @@ uint16_t wCRCTable[] = {
 0X4400, 0X84C1, 0X8581, 0X4540, 0X8701, 0X47C0, 0X4680, 0X8641,
 0X8201, 0X42C0, 0X4380, 0X8341, 0X4100, 0X81C1, 0X8081, 0X4040 };
 
-#if(MODBUS_TYPE == MODBUS_TYPE_MASTER)
+//#if(MODBUS_TYPE == MODBUS_TYPE_MASTER)
 int32_t modbus_serial_wait=MODBUS_SERIAL_TIMEOUT;
 
-
-#define MODBUS_SERIAL_WAIT_FOR_RESPONSE()\
-{\
-   if(address)\
-    {\
-        while(!modbus_kbhit() && --modbus_serial_wait)\
-        ets_delay_us(1);\
-        if(!modbus_serial_wait)\
-        modbus_rx.error=TIMEOUT;\
-    }\
-    modbus_serial_wait = MODBUS_SERIAL_TIMEOUT;\
-    }
-#endif
-
-
-//*****************************************************
-
-uint8_t make8(uint16_t Tobytes,uint8_t Pos)
-{
-        uint8_t Aux = 0;
-        
-        switch(Pos)
-        {
-                case 0:
-                        Aux=(uint8_t)(Tobytes);
-                        break;
-
-                case 1:
-                        Aux=(uint8_t)(Tobytes>>8);
-                        break;        
-        }
-        return Aux;
-}
-
-
-
-//*****************************************************
-
-
-void RCV_ON(void)                       //ESta Funcion va a ser la que habilita el serial y las interrupciones
-{
-        return;
-        /*
-        #if(MODBUS_SERIAL_INT_SOURCE!=MODBUS_INT_EXT)
-                while(kbhit(MODBUS_SERIAL)) 
-                {
-                        getc();
-                }  //Borra RX buffer. Borra interrupció RDA. Borra el flag del overrun error flag.
-
-        #if(MODBUS_SERIAL_INT_SOURCE==MODBUS_INT_RDA)
-                clear_interrupt(INT_RDA);            //Neteja interrupció RDA
-        #else
-                clear_interrupt(INT_RDA2);
-        #endif
-        #if(MODBUS_SERIAL_RX_ENABLE!=0) 
-                output_low(MODBUS_SERIAL_RX_ENABLE);
-        #endif
-        #if(MODBUS_SERIAL_INT_SOURCE==MODBUS_INT_RDA)
-                enable_interrupts(INT_RDA);
-        #else
-                enable_interrupts(INT_RDA2);
-        #endif
-        #else
-                clear_interrupt(INT_EXT);
-                ext_int_edge(H_TO_L);
-                #if(MODBUS_SERIAL_RX_ENABLE!=0) 
-                        output_low(MODBUS_SERIAL_RX_ENABLE);
-                #endif
-                enable_interrupts(INT_EXT);
-        #endif
-        */
-}
-        
-        
-
-
-
-        
-// Objectiu:   Inicialitza comunicació RS-485. Cridem aquesta funció abans
-//d'utilitzar qualsevol funció RS-485  
-// Entrades:   Cap
-// Sortides:   Cap
-
-void modbus_init(void)   
-{
-
-
-        /* uart_param_config(UART_NUM_1, &uart_config);
-        uart_set_pin(UART_NUM_1, MODBUS_SERIAL_TX_PIN, MODBUS_SERIAL_RX_PIN, MODBUS_SERIAL_ENABLE_PIN, MODBUS_SERIAL_CTS_PIN);
-        uart_driver_install(UART_NUM_1, BUF_SIZE*2, BUF_SIZE*2, 0, NULL, 0);
-        gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN,0);   //Possem a zero el Tcs del transreceptor */
-        //Modbus_Task_Start();
-       
-       // RCV_ON();                               //crida aquesta funció per activar la recepció
-       // setup_timer_2(T2_DIV_BY_16,249,5);      //Configuració del Timer 2 per interrupció ~4ms
-        //enable_interrupts(GLOBAL);              //Permet les interrupcions globals
-        
-}
-
-
-
-
-// Objectiu:    Inicia el Timer de Timeout alhora d'enviar o rebre trames
-// Entrades:    Enable, s'utilitza per canviar l'estat on/off
-// Sortides:    cap
-// El Timeout s'haurà d'activar quan el següent byte tardi més de 4ms
-// a 1 = càrrega Timeout 
-// a 0 = Parat
-// Per enviar trama activem el Timeout
-
-
-void modbus_enable_timeout(int enable)
-{
-        //disable_interrupts(INT_TIMER2);   //Desabilita la interrupció del Timer 2
-        if(enable) 
-        {
-                //set_timer2(0);                 //Posa a 0 el Timer
-                //clear_interrupt(INT_TIMER2);   //Neteja la interrupció
-                //enable_interrupts(INT_TIMER2); //Torna a habilitar la int del timer 
-        }
-}
-
-
-
-
-// Objectiu:    Quan s'ha disparat la interrupció 2 el programa se situa a int timer2
-// Entrades:    Cap
-// Sortides:    Cap
-
-//#int_timer2
-void modbus_timeout_now(void)   //EL MODBUS-GETDATA és l'estat 2 definit a enum//Si el programa es troba en l'Estat 2 i el Crc ha arribat a 0 (trama correcta) i tenim nova trama:  
-{
-        if((modbus_serial_state == MODBUS_GETDATA) && (modbus_serial_crc.d == 0x0000) && (!modbus_serial_new))
-        {
-                modbus_rx.len-=2;            
-                modbus_serial_new=MODBUS_TRUE;   //Marcador que indica que hi ha una nova trama a processar
-        }
-        else 
-                modbus_serial_new=MODBUS_FALSE;//prepara microcontrolador per la següent trama
-        modbus_serial_crc.d=0xFFFF;  //Inicialitza el CRC (sempre inicialitzat a 0xFFFF)
-        modbus_serial_state=MODBUS_GETADDY; 
-        modbus_enable_timeout(MODBUS_FALSE); //Para temporitzador de timeout
-}
 
 uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen )
 {
@@ -246,169 +102,8 @@ void modbus_serial_putc(int8_t c)
     //modbus_calc_crc(c);        //Enviem el byte C a la funció per calcular el CRC (data)
     ets_delay_us(10000000/MODBUS_SERIAL_BAUD); //Retard perquè el receptor tingui temps de calcular el CRC
 }
-/*
-void incomming_modbus_serial_new(void) 
-{
-
-        int len = 0;
-        uint8_t index=0;
-        data_buffer = malloc(sizeof(uint8_t) * (MODBUS_SERIAL_RX_BUFFER_SIZE+10));  
-        len = uart_read_bytes(UART_NUM_1, (uint8_t *)data_buffer, len, 3500000/MODBUS_SERIAL_BAUD);
-        if (len > 0){
-            modbus_rx.address= data_buffer[0];
-            modbus_rx.func = data_buffer[1]; 
-            while((index++)<=len-4)
-                modbus_rx.data[index] = data_buffer[index+2]; 
-            modbus_rx.crc = ((data_buffer[len-2])<<8 )|| (data_buffer[len-1]);
-        }
 
 
-        uint16_t CRC_RTN=CRC16 (data_buffer, len);
-        Valid_data_Flag=(CRC_RTN== modbus_rx.crc)?MODBUS_TRUE:MODBUS_FALSE;
-                
-        
-
-
-}//*/
-
-// Objectiu:   Interrumpeix la rutina de servei per tractar dades d'entrada
-// Entrades:   Cap
-// Sortides:   Cap
-/*
-#if(MODBUS_SERIAL_INT_SOURCE==MODBUS_INT_RDA)
-        #int_rda               //Quan tenim buffer sèrie ple es dispara una interrupció  
-#elif(MODBUS_SERIAL_INT_SOURCE==MODBUS_INT_RDA2)
-        #int_rda2
-#elif(MODBUS_SERIAL_INT_SOURCE==MODBUS_INT_EXT)
-        #int_ext
-#else
-#error Please define a correct interrupt source
-#endif                          //*/
-/*void incomming_modbus_serial(void) 
-{
-        char c = '\0';
-        //char data_buffer[1];
-        int len = uart_read_bytes(UART_NUM_1, (uint8_t *)Modbus_RX_BUFFER, 1, 3500000/MODBUS_SERIAL_BAUD);
-
-        if (len > 0){
-            c = Modbus_RX_BUFFER[0];
-        }
-        //c=fgetc(MODBUS_SERIAL);    //MODBUS SERIAL és el nom que hem donat a la UART
-        //Agafa sempre tota la trama encara que no sigui per nosaltres
-        if(!modbus_serial_new)  //Mira en quin estat ens trobem ADR, FUN, DAD 
-        {
-                if(modbus_serial_state == MODBUS_GETADDY)
-                {
-                        modbus_serial_crc.d = 0xFFFF; //Inicialitzar CRC per rebre
-                        modbus_rx.address = c;        //Guarda adreça que arriba 
-                        modbus_serial_state++;        //Incrementa Estat
-                        modbus_rx.len = 0;            //Inicia byte llargada
-                        modbus_rx.error=0;            //Inicia byte d'error
-                }
-                else
-                if(modbus_serial_state == MODBUS_GETFUNC)
-                {
-                        modbus_rx.func = c;           //Guarda codi de funció
-                        modbus_serial_state++;        //Incrementa l'estat del sistema
-                }
-                else
-                if(modbus_serial_state == MODBUS_GETDATA)//el rx buffer size és el màxim de memòria que hem donat (definit a programa Main)
-                {
-                        if(modbus_rx.len>=MODBUS_SERIAL_RX_BUFFER_SIZE) 
-                        {
-                                modbus_rx.len=MODBUS_SERIAL_RX_BUFFER_SIZE-1;
-                        }
-                        modbus_rx.data[modbus_rx.len]=c;  //Guarda la C a rx.data
-
-                        modbus_rx.len++;                  //Incrementa la posició
-                }
-                //modbus_calc_crc(c);                  // Calcula el CRC del valor agafat de la UART
-                modbus_enable_timeout(MODBUS_TRUE);         // Activem el temps de Timeout i el següent byte
-                // Té 4 ms de Timeout  per arribar
-        }
-}//*/
-
-bool modbus_read_hw_buffer()
-{
-        uint8_t index = 0;
-        uint16_t broke = 0;
-        int len = 0;
-        bool ok = false;
-        Valid_data_Flag=0;
-
-        uint8_t * Mod_buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
-
-        if (!Mod_buffer)
-        {
-                modbus_rx.error = TIMEOUT; //Crear código para malloc
-                return false;
-        }
-        memset(Mod_buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
-
-        while ((++broke<15) && (len<=0))
-        {
-                vTaskDelay(100 / portTICK_PERIOD_MS);
-                uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
-                if(len){
-                        len = uart_read_bytes(UART_NUM_1,Mod_buffer, len, 100);
-                }
-        }
-        
-        printf("Len= %d \n str: %*.s\n",len, len, Mod_buffer);
-
-        if(len <= 0)
-        {
-                modbus_rx.error = TIMEOUT;
-                printf("Modbus Timed out \n");
-                ok = false;
-        }
-        else
-        {
-                modbus_rx.error = 0;
-                modbus_rx.address = Mod_buffer[0];
-                modbus_rx.func = Mod_buffer[1];
-
-
-               
-                for (int i = 0; i < len - 4; i++){
-                        modbus_rx.data[i] = Mod_buffer[i + 2];
-                        printf("-%x", Mod_buffer[i + 2]);
-                }
-                 //****************************** leer exepciones
-                if(modbus_rx.func & 0x80) 
-                {
-                        modbus_rx.error = modbus_rx.data[0];
-                        modbus_rx.len=1;
-                }
-                //***********************************************
-                
-                printf("\n");
-                uint16_t CRC_RCV = (uint16_t)((Mod_buffer[len-2])<<8 )| (Mod_buffer[len-1]);
-                uint16_t CRC_RTN = CRC16 (Mod_buffer, len - 2);
-                Valid_data_Flag = (CRC_RTN == CRC_RCV)? MODBUS_TRUE:MODBUS_FALSE;
-                printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
-                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-                       
-                if(Valid_data_Flag==1)
-                {
-                        modbus_rx.len=len-4;
-                      //  printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
-                      //  printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-                        //printf("Data REceived: \n");  
-                        //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
-                        ok = CRC_RTN == CRC_RCV;   
-                }
-                else
-                {
-                        printf("No valid Data flag \n");
-                       memset( modbus_rx.data,'\0',len-4); 
-                       modbus_rx.len=0;   
-                }
-        }
-
-        free(Mod_buffer);
-        return ok;
-}   
 
 
 void modbus_serial_send_stop(void)
@@ -427,27 +122,6 @@ void modbus_serial_send_stop(void)
         modbus_serial_crc.d=0xFFFF;
 }
 
-
-// Objectiu:    Guarda missatge del bus en un buffer
-// Entrades:    Cap
-// Sortides:    MODBUS_TRUE si el missatge s'ha rebut
-//              MODBUS_FALSE si no s'ha rebut
-// Nota:        Les dades seran omplertes en el modbus_rx struct
-
-
-int modbus_kbhit(void)
-{
-        if(!modbus_serial_new)                  //si no tenim nova trama Kbhit=0
-                return MODBUS_FALSE;
-        else
-        if(modbus_rx.func & 0x80)           //sinó si la funció té error
-        {
-                modbus_rx.error = modbus_rx.data[0];  //guarda l'error
-                modbus_rx.len = 1;                    //es modifica la trama a enviar
-        }
-        modbus_serial_new=MODBUS_FALSE;                 //Inicia l'indicador de trama nova
-        return MODBUS_TRUE;                             //Kbhit=1 TENIM NOVA TRAMA
-}
 
 
 /*
@@ -636,8 +310,9 @@ bool modbus_read_input_registers(int8_t address, int16_t start_address, int16_t 
         Output:    exception                     0 if no error, else the exception
         
 */
-exception modbus_write_single_coil(int8_t address, int16_t output_address, int on)
+uint8_t modbus_write_single_coil(int8_t address, int16_t output_address, int on)
 {
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_WRITE_SINGLE_COIL, 
                         make8(output_address,1), make8(output_address,0), 
                         make8(output_address,1), make8(output_address,0)};
@@ -657,8 +332,8 @@ exception modbus_write_single_coil(int8_t address, int16_t output_address, int o
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+       ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -669,8 +344,9 @@ exception modbus_write_single_coil(int8_t address, int16_t output_address, int o
                 int16      reg_value          Value to write
         Output:    exception                     0 if no error, else the exception
 */
-exception modbus_write_single_register(int8_t address, int16_t reg_address, int16_t reg_value)
+uint8_t modbus_write_single_register(int8_t address, int16_t reg_address, int16_t reg_value)
 {
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_WRITE_SINGLE_REGISTER, 
                         make8(reg_address,1), make8(reg_address,0), 
                         make8(reg_value,1), make8(reg_value,0)}; 
@@ -685,8 +361,8 @@ exception modbus_write_single_register(int8_t address, int16_t reg_address, int1
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -698,12 +374,13 @@ exception modbus_write_single_register(int8_t address, int16_t reg_address, int1
         
 */
 
-exception modbus_read_exception_status(int8_t address)
+uint8_t modbus_read_exception_status(int8_t address)
 {
+        uint8_t ok;
         modbus_serial_send_start(address, FUNC_READ_EXCEPTION_STATUS);
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -717,8 +394,9 @@ exception modbus_read_exception_status(int8_t address)
         Output:    exception                     0 if no error, else the exception
 */
 
-exception modbus_diagnostics(int8_t address, int16_t sub_func, int16_t data)
+uint8_t modbus_diagnostics(int8_t address, int16_t sub_func, int16_t data)
 {
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_DIAGNOSTICS, 
                         make8(sub_func,1), make8(sub_func,0), 
                         make8(data,1), make8(data,0)}; 
@@ -733,8 +411,8 @@ exception modbus_diagnostics(int8_t address, int16_t sub_func, int16_t data)
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 /*
@@ -743,12 +421,13 @@ exception modbus_diagnostics(int8_t address, int16_t sub_func, int16_t data)
         Output:    exception                     0 if no error, else the exception
 */
 
-exception modbus_get_comm_event_counter(int8_t address)
+uint8_t modbus_get_comm_event_counter(int8_t address)
 {
+        uint8_t ok;
         modbus_serial_send_start(address, FUNC_GET_COMM_EVENT_COUNTER);
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+       ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 /*
@@ -756,12 +435,13 @@ exception modbus_get_comm_event_counter(int8_t address)
         Input:     int8       address            Slave Address
         Output:    exception                     0 if no error, else the exception
 */
-exception modbus_get_comm_event_log(int8_t address)
+uint8_t modbus_get_comm_event_log(int8_t address)
 {
+        uint8_t ok;
         modbus_serial_send_start(address, FUNC_GET_COMM_EVENT_LOG);
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -774,8 +454,9 @@ exception modbus_get_comm_event_log(int8_t address)
         int1*      values             A pointer to an array holding the values to write
         Output:    exception                     0 if no error, else the exception
 */
-exception modbus_write_multiple_coils(int8_t address, int16_t start_address, int16_t quantity,int8_t *values)
+uint8_t modbus_write_multiple_coils(int8_t address, int16_t start_address, int16_t quantity,int8_t *values)
 {
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_WRITE_MULTIPLE_COILS, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)}; 
@@ -796,8 +477,8 @@ exception modbus_write_multiple_coils(int8_t address, int16_t start_address, int
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -809,8 +490,9 @@ exception modbus_write_multiple_coils(int8_t address, int16_t start_address, int
         int16*     values             A pointer to an array holding the data to write
         Output:    exception                     0 if no error, else the exception
 */
-exception modbus_write_multiple_registers(int8_t address, int16_t start_address, int16_t quantity,int16_t *values)
+uint8_t modbus_write_multiple_registers(int8_t address, int16_t start_address, int16_t quantity,int16_t *values)
 {
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_WRITE_MULTIPLE_REGISTERS, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)};         
@@ -830,8 +512,8 @@ exception modbus_write_multiple_registers(int8_t address, int16_t start_address,
 
         CRC16(msg, 6);
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 /*
@@ -839,12 +521,13 @@ exception modbus_write_multiple_registers(int8_t address, int16_t start_address,
         Input:     int8       address            Slave Address
         Output:    exception                     0 if no error, else the exception
 */
-exception modbus_report_slave_id(int8_t address)
+uint8_t modbus_report_slave_id(int8_t address)
 {
+        uint8_t ok;
         modbus_serial_send_start(address, FUNC_REPORT_SLAVE_ID);
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
         
 }
 
@@ -855,8 +538,9 @@ exception modbus_report_slave_id(int8_t address)
                 read_sub_request*   request      Structure holding record information
         Output:    exception                              0 if no error, else the exception
 */
-exception modbus_read_file_record(int8_t address, int8_t byte_count, modbus_read_sub_request *request)
+uint8_t modbus_read_file_record(int8_t address, int8_t byte_count, modbus_read_sub_request *request)
 {
+        uint8_t ok;
         int8_t i;modbus_serial_send_start(address, FUNC_READ_FILE_RECORD);
         modbus_serial_putc(byte_count);
         for(i=0; i < (byte_count/7); i+=7)
@@ -871,8 +555,8 @@ exception modbus_read_file_record(int8_t address, int8_t byte_count, modbus_read
                 request++;
         }
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -883,8 +567,9 @@ exception modbus_read_file_record(int8_t address, int8_t byte_count, modbus_read
         read_sub_request*   request            Structure holding record/data information
         Output:    exception                              0 if no error, else the exception
 */
-exception modbus_write_file_record(int8_t address, int8_t byte_count, modbus_write_sub_request *request)
+uint8_t modbus_write_file_record(int8_t address, int8_t byte_count, modbus_write_sub_request *request)
 {
+        uint8_t ok;
         int8_t i, j=0;
         modbus_serial_send_start(address, FUNC_WRITE_FILE_RECORD);
         modbus_serial_putc(byte_count);
@@ -904,8 +589,8 @@ exception modbus_write_file_record(int8_t address, int8_t byte_count, modbus_wri
                 }request++;
         }
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+       ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 /*
@@ -916,8 +601,9 @@ exception modbus_write_file_record(int8_t address, int8_t byte_count, modbus_wri
         int16      OR_mask            A mask to OR with the data at reference_address
         Output:    exception                              0 if no error, else the exception
 */
-exception modbus_mask_write_register(int8_t address, int16_t reference_address,int16_t AND_mask, int16_t OR_mask)
+uint8_t modbus_mask_write_register(int8_t address, int16_t reference_address,int16_t AND_mask, int16_t OR_mask)
 {
+        uint8_t ok;
         modbus_serial_send_start(address, FUNC_MASK_WRITE_REGISTER);
         modbus_serial_putc(make8(reference_address,1));
         modbus_serial_putc(make8(reference_address,0));
@@ -926,8 +612,8 @@ exception modbus_mask_write_register(int8_t address, int16_t reference_address,i
         modbus_serial_putc(make8(OR_mask, 1));
         modbus_serial_putc(make8(OR_mask, 0));
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -942,8 +628,9 @@ exception modbus_mask_write_register(int8_t address, int16_t reference_address,i
         int16*     write_registers_value  Pointer to an aray us to write
         Output:    exception                         0 if no error, else the exception
 */
-exception modbus_read_write_multiple_registers(int8_t address, int16_t read_start,int16_t read_quantity, int16_t write_start,int16_t write_quantity,int16_t *write_registers_value)
+uint8_t modbus_read_write_multiple_registers(int8_t address, int16_t read_start,int16_t read_quantity, int16_t write_start,int16_t write_quantity,int16_t *write_registers_value)
 {
+        uint8_t ok;
         int8_t i;
         modbus_serial_send_start(address, FUNC_READ_WRITE_MULTIPLE_REGISTERS);
         modbus_serial_putc(make8(read_start,1));
@@ -961,8 +648,8 @@ exception modbus_read_write_multiple_registers(int8_t address, int16_t read_star
                 modbus_serial_putc(make8(write_registers_value[i+1], 0));
         }
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
 
 
@@ -972,14 +659,15 @@ exception modbus_read_write_multiple_registers(int8_t address, int16_t read_star
         int16      FIFO_address      FIFO address
         Output:    exception                    0 if no error, else the exception
 */
-exception modbus_read_FIFO_queue(int8_t address, int16_t FIFO_address)
+uint8_t modbus_read_FIFO_queue(int8_t address, int16_t FIFO_address)
 {
+        uint8_t ok;
         modbus_serial_send_start(address, FUNC_READ_FIFO_QUEUE);
         modbus_serial_putc(make8(FIFO_address, 1));
         modbus_serial_putc(make8(FIFO_address, 0));
         modbus_serial_send_stop();
-        MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        return modbus_rx.error;
+        ok = modbus_read_hw_buffer();
+        return ok;
 }
         
 
