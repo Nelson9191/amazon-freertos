@@ -175,7 +175,7 @@ void read_all_coils(void)
    printf("Coils:\r\n");
    modbus_rx_buf_struct rx_buf;
 
-   if(modbus_read_coils(2,0,0, &rx_buf))
+   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,0, &rx_buf))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
