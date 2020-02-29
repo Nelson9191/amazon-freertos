@@ -175,7 +175,7 @@ void read_all_coils(void)
    printf("Coils:\r\n");
    modbus_rx_buf_struct rx_buf;
 
-   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,0, &rx_buf))
+   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,8, &rx_buf))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
@@ -185,7 +185,7 @@ void read_all_coils(void)
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", rx_buf.error);
    }
 }
 
