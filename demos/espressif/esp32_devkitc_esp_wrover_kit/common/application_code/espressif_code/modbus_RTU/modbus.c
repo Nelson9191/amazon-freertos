@@ -159,7 +159,25 @@ void modbus_serial_send_start(int8_t to, int8_t func)
     modbus_serial_putc(func);
 }
 
+
+uint8_t make8(uint16_t Tobytes,uint8_t Pos)
+{
+        uint8_t Aux = 0;
+
+        switch(Pos)
+        {
+                case 0:
+                        Aux=(uint8_t)(Tobytes);
+                        break;
+
+                case 1:
+                        Aux=(uint8_t)(Tobytes>>8);
+                        break;        
+        }
+        return Aux;
+}
 //              MODBUS MASTER FUNCTIONS      
+
 
 #if(MODBUS_TYPE==MODBUS_TYPE_MASTER)
 

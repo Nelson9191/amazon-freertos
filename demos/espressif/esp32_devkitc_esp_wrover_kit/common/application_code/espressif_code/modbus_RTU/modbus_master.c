@@ -16,10 +16,17 @@
 
 #define BUF_SIZE 2000
 
+volatile uint8_t Current=0;
+
 
 volatile uint8_t FSM_State=0; 
 
 volatile bool Valid_data_Flag=MODBUS_FALSE;
+
+uint8_t MODBUS_SLAVE_ADDRESS[]= {MODBUS_SLAVE_0_ADDRESS, MODBUS_SLAVE_1_ADDRESS, MODBUS_SLAVE_2_ADDRESS, MODBUS_SLAVE_3_ADDRESS,MODBUS_SLAVE_4_ADDRESS,MODBUS_SLAVE_5_ADDRESS,MODBUS_SLAVE_6_ADDRESS,MODBUS_SLAVE_7_ADDRESS,MODBUS_SLAVE_8_ADDRESS,MODBUS_SLAVE_9_ADDRESS};
+
+volatile modbus_rx Slaves[Slave_QQTy];
+
 
 
 bool modbus_read_hw_buffer()
@@ -238,7 +245,7 @@ void parse_write(char c)
          write_regs();
          break; 
       case '9':
-         unknown_func();
+         //unknown_func();
          break;
    }
 }
@@ -460,4 +467,5 @@ void unknown_func(void)
    {
       printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
    }
-}//*/
+}
+*/
