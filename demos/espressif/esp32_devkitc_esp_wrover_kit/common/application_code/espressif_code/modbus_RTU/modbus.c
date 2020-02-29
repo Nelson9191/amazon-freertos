@@ -1175,7 +1175,8 @@ bool modbus_read_hw_buffer()
                 printf("Modbus Timed out \n");
                 ok = false;
         }
-        else{
+        else
+        {
                 modbus_rx.error = 0;
                 modbus_rx.address = buffer[0];
                 modbus_rx.func = buffer[1];
@@ -1188,15 +1189,11 @@ bool modbus_read_hw_buffer()
                 printf("\n");
 
                 
-                uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 )|| (buffer[len-1]);
+                uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 ) | (buffer[len-1]);
 
                 uint16_t CRC_RTN = CRC16 (buffer, len - 3);
                 printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
                 printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN<<8), (uint8_t)(CRC_RTN));
-
-                //Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
-                //printf("Data REceived: \n");  
-                //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
                 ok = CRC_RTN == CRC_RCV;   
         }
 
