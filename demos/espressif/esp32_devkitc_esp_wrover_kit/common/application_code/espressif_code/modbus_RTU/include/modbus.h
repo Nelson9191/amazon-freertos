@@ -28,7 +28,7 @@
 #endif// o una interrupció sèrie assíncrona 
 
 #ifndef MODBUS_SERIAL_BAUD
-#define MODBUS_SERIAL_BAUD 115200
+#define MODBUS_SERIAL_BAUD 9600
 #endif
 
 #ifndef MODBUS_SERIAL_RX_PIN
@@ -59,22 +59,6 @@
 #define MODBUS_SERIAL_TIMEOUT      10000     //in us
 #endif
 
-
-/*
-#if( MODBUS_SERIAL_INT_SOURCE == MODBUS_INT_RDA )
-#use rs232(baud=MODBUS_SERIAL_BAUD, UART1, parity=N,stream=MODBUS_SERIAL, errors)
-#define RCV_OFF() {disable_interrupts(INT_RDA);}
-#elif( MODBUS_SERIAL_INT_SOURCE == MODBUS_INT_RDA2 )
-#use rs232(baud=MODBUS_SERIAL_BAUD, UART2, parity=N,stream=MODBUS_SERIAL, error)
-#define RCV_OFF() {disable_interrupts(INT_RDA2);}
-#elif( MODBUS_SERIAL_INT_SOURCE == MODBUS_INT_EXT )
-#use rs232(baud=MODBUS_SERIAL_BAUD, xmit=MODBUS_SERIAL_TX_PIN, rcv=MODBUS_SERIAL_RX_PIN, parity=N, stream=MODBUS_SERIAL, disable_ints)
-#define RCV_OFF() {disable_interrupts(INT_EXT);}
-#else
-#error Please define a correct interrupt source
-#endif
-
-//*/
 
 #ifndef MODBUS_SERIAL_RX_BUFFER_SIZE
 #define MODBUS_SERIAL_RX_BUFFER_SIZE    64      //tamany de enviar/rebre buffer
@@ -209,7 +193,7 @@ typedef struct
     function func;                           //the function of the message received
     exception error;                         //error recieved, if any
     int8_t data[MODBUS_SERIAL_RX_BUFFER_SIZE]; //data of the message received
-} modbus_rx;    
+} modbus_rx_buf_struct;    
     
     
  
@@ -225,7 +209,7 @@ void modbus_timeout_now(void);
 void incomming_modbus_serial(void); 
 void modbus_serial_send_stop(void);
 int modbus_kbhit(void);
-void modbus_serial_send_start(int8_t, int8_t);
+void modbus_serial_send_start(uint8_t, uint8_t);
 uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen);
 uint16_t crc_modbus( const unsigned char *input_str, int num_bytes );
 bool modbus_read_hw_buffer();
@@ -236,7 +220,7 @@ void incomming_modbus_serial_new(void);
 //MASTER API FUNCTIONS PROTOTYPES:
 //All master API functions return 0 on success. 
 
-bool modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity);
+bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct);
 bool modbus_read_discrete_input(int8_t, int16_t, int16_t);
 
 bool modbus_read_holding_registers(int8_t, int16_t, int16_t);
@@ -269,7 +253,9 @@ void modbus_read_input_registers_rsp(int8_t, int8_t, int8_t *);                 
 void modbus_write_single_coil_rsp(int8_t, int16_t, int16_t);                        //05
 void modbus_write_single_register_rsp(int8_t, int16_t, int16_t);                    //06
 void modbus_read_exception_status_rsp(int8_t, int8_t);                              //07
-void modbus_diagnostics_rsp(int8_t, int16_t, int16_t);                              //08
+void modbus_diagnostics_rsp(int8_t, int16_t, int16_t);  
+
+void modbus_copy_rx_buffer(modbus_rx_buf_struct * rx_struct);
 
 
 void modbus_get_comm_event_counter_rsp(int8_t,int16_t,int16_t);                     //0B

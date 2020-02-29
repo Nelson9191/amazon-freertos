@@ -32,6 +32,9 @@ union{
     int16_t d;    //Defineix un Word de 16 bits
 } modbus_serial_crc;
 
+
+volatile modbus_rx_buf_struct modbus_rx;
+
  
 
 
@@ -94,7 +97,7 @@ uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen )
 // Entrades:    Caràcter
 // Sortides:    Cap
 
-void modbus_serial_putc(int8_t c)
+void modbus_serial_putc(uint8_t c)
 {
     char * ptr = (char *)&c;
     uart_write_bytes(UART_NUM_1, ptr, 1);
@@ -143,17 +146,14 @@ MODBUS_FALSE si hi ha fallida
 Format: font | destinació | llargada-dades | dades | checksum
 */
 
-void modbus_serial_send_start(int8_t to, int8_t func)
+void modbus_serial_send_start(uint8_t to, uint8_t func)
 {
     modbus_serial_crc.d = 0xFFFF;//Inicialitza el CRC
     
     modbus_serial_new = MODBUS_FALSE;//re-inicializa el bit de nueva trama
     
-    //RCV_OFF();//Parem la Recepció (off)
-    
-//#if (MODBUS_SERIAL_ENABLE_PIN!=0)
     gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 1);
-//#endif
+
     ets_delay_us(3500000/MODBUS_SERIAL_BAUD); //3.5 character delay (caràcters de retràs
     modbus_serial_putc(to);//Envia les dades a la UART
     modbus_serial_putc(func);
@@ -191,7 +191,7 @@ read_coils
 */
 
 
-bool modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity)
+bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct)
 {
         bool ok;
         uint8_t msg[] = {address, FUNC_READ_COILS, 
@@ -204,16 +204,34 @@ bool modbus_read_coils(int8_t address, int16_t start_address, int16_t quantity)
         modbus_serial_putc(make8(quantity,1));
         modbus_serial_putc(make8(quantity,0));
         
-        uint16_t CRC_RTN=CRC16 (msg, 6);
+        uint16_t CRC_RTN = CRC16 (msg, 6);
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         
         modbus_serial_send_stop();
         ok = modbus_read_hw_buffer();
 
+        if (ok)
+        {
+                modbus_copy_rx_buffer(rx_struct);
+        }
+
         return ok;
 }
 
+void modbus_copy_rx_buffer(modbus_rx_buf_struct * rx_struct)
+{
+        if (rx_struct == NULL)
+        {
+                return;
+        }
+
+        rx_struct->address = modbus_rx.address;
+        rx_struct->len = modbus_rx.len;
+        rx_struct->func = modbus_rx.func;
+        rx_struct->error = modbus_rx.error;
+        strncpy((char *)rx_struct->data, (char *)modbus_rx.data, MODBUS_SERIAL_RX_BUFFER_SIZE);
+}
 
 
 /*
@@ -1122,3 +1140,66 @@ void modbus_exception_rsp(int8_t address, int16_t func, exception error)
 
 
 #endif
+
+
+bool modbus_read_hw_buffer()
+{
+        uint8_t index = 0;
+        uint16_t broke = 0;
+        int len = 0;
+        bool ok = false;
+
+        uint8_t * buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+        if (!buffer){
+                modbus_rx.error = TIMEOUT; //Crear código para malloc
+                return false;
+        }
+
+        memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+        while ((++broke<150) && (len<=0))
+        {
+                vTaskDelay(10 / portTICK_PERIOD_MS);
+                uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
+                if(len){
+                        len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
+                }
+        }
+        
+        printf("Len= %d \n str: %*.s\n",len, len, buffer);
+
+        if(len <= 0)
+        {
+                modbus_rx.error = TIMEOUT;
+                printf("Modbus Timed out \n");
+                ok = false;
+        }
+        else{
+                modbus_rx.error = 0;
+                modbus_rx.address = buffer[0];
+                modbus_rx.func = buffer[1];
+                
+                for (int i = 0; i < len - 2; i++){
+                        modbus_rx.data[i] = buffer[i + 2];
+                        printf("-%x", buffer[i + 2]);
+                }
+                
+                printf("\n");
+
+                
+                uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 )|| (buffer[len-1]);
+
+                uint16_t CRC_RTN = CRC16 (buffer, len - 3);
+                printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
+                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN<<8), (uint8_t)(CRC_RTN));
+
+                //Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
+                //printf("Data REceived: \n");  
+                //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
+                ok = CRC_RTN == CRC_RCV;   
+        }
+
+        free(buffer);
+        return ok;
+} 

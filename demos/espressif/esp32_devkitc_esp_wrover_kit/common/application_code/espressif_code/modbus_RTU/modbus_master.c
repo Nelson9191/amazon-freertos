@@ -14,8 +14,6 @@
 #include "modbus_master.h"
 #include "gpio_handler.h"
 
-#define BUF_SIZE 2000
-
 volatile uint8_t Current=0;
 
 
@@ -25,111 +23,23 @@ volatile bool Valid_data_Flag=MODBUS_FALSE;
 
 uint8_t MODBUS_SLAVE_ADDRESS[]= {MODBUS_SLAVE_0_ADDRESS, MODBUS_SLAVE_1_ADDRESS, MODBUS_SLAVE_2_ADDRESS, MODBUS_SLAVE_3_ADDRESS,MODBUS_SLAVE_4_ADDRESS,MODBUS_SLAVE_5_ADDRESS,MODBUS_SLAVE_6_ADDRESS,MODBUS_SLAVE_7_ADDRESS,MODBUS_SLAVE_8_ADDRESS,MODBUS_SLAVE_9_ADDRESS};
 
-volatile modbus_rx Slaves[Slave_QQTy];
-
-
-
-bool modbus_read_hw_buffer()
-{
-        uint8_t index = 0;
-        uint16_t broke = 0;
-        int len = 0;
-        bool ok = false;
-        Valid_data_Flag=0;
-
-        uint8_t * Mod_buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
-
-        if (!Mod_buffer)
-        {
-                Slaves[Current].error = TIMEOUT; //Crear código para malloc
-                return false;
-        }
-        memset(Mod_buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
-
-        while ((++broke<15) && (len<=0))
-        {
-                vTaskDelay(100 / portTICK_PERIOD_MS);
-                uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
-                if(len){
-                        len = uart_read_bytes(UART_NUM_1,Mod_buffer, len, 100);
-                }
-        }
-        
-        printf("Len= %d \n str: %*.s\n",len, len, Mod_buffer);
-
-        if(len <= 0)
-        {
-                Slaves[Current].error = TIMEOUT;
-                printf("Modbus Timed out \n");
-                ok = false;
-        }
-        else
-        {
-                Slaves[Current].error = 0;
-                Slaves[Current].address = Mod_buffer[0];
-                Slaves[Current].func = Mod_buffer[1];
-
-
-               
-                for (int i = 0; i < len - 4; i++){
-                        Slaves[Current].data[i] = Mod_buffer[i + 2];
-                        printf("-%x", Mod_buffer[i + 2]);
-                }
-                 //****************************** leer exepciones
-                if( Slaves[Current].func & 0x80) 
-                {
-                        Slaves[Current].error = Slaves[Current].data[0];
-                        Slaves[Current].len=1;
-                }
-                //***********************************************
-                
-                printf("\n");
-                uint16_t CRC_RCV = (uint16_t)((Mod_buffer[len-2])<<8 )| (Mod_buffer[len-1]);
-                uint16_t CRC_RTN = CRC16 (Mod_buffer, len - 2);
-                Valid_data_Flag = (CRC_RTN == CRC_RCV)? MODBUS_TRUE:MODBUS_FALSE;
-                printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
-                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-                       
-                if(Valid_data_Flag==1)
-                {
-                         Slaves[Current].len=len-4;
-                      //  printf("Recv checksum: %2x %2x\n", Mod_buffer[len-2], Mod_buffer[len-1]);
-                      //  printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-                        //printf("Data REceived: \n");  
-                        //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
-                        ok = CRC_RTN == CRC_RCV;   
-                }
-                else
-                {
-                        printf("No valid Data flag \n");
-                       memset(  Slaves[Current].data,'\0',len-4); 
-                        Slaves[Current].len=0;   
-                }
-        }
-
-        free(Mod_buffer);
-        return ok;
-}   
+volatile modbus_rx_buf_struct Slaves[Slave_QQTy];  
 
 
 
 uart_config_t uart_config = {
-    .baud_rate = 9600,                  //9600
-    .data_bits = UART_DATA_8_BITS,     
+    .baud_rate = MODBUS_SERIAL_BAUD,
+    .data_bits = UART_DATA_8_BITS,
     .parity    = UART_PARITY_DISABLE,
-    .stop_bits = UART_STOP_BITS_2,        //2
+    .stop_bits = UART_STOP_BITS_2,
     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
 };
 
 void modbus_master_init(){
    uart_param_config(UART_NUM_1, &uart_config);
    uart_set_pin(UART_NUM_1, MODBUS_SERIAL_TX_PIN, MODBUS_SERIAL_RX_PIN, MODBUS_SERIAL_RTS_PIN, MODBUS_SERIAL_CTS_PIN);
-   uart_driver_install(UART_NUM_1, BUF_SIZE*2, BUF_SIZE*2, 0, NULL, 0);
+   uart_driver_install(UART_NUM_1, 200*2, 200*2, 0, NULL, 0);
    gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN,0);   //Possem a zero el Tcs del transreceptor
-
-   // RCV_ON();                               //crida aquesta funció per activar la recepció
-   // setup_timer_2(T2_DIV_BY_16,249,5);      //Configuració del Timer 2 per interrupció ~4ms
-   //enable_interrupts(GLOBAL);              //Permet les interrupcions globals
 
    ( void ) xTaskCreate( _modbus_task,
                               TASK_MODBUS_NAME,
@@ -144,7 +54,7 @@ static void _modbus_task(void * pvParameters)
 {
 
     printf("Modbus created\n");
-    Print_Function_Debug();
+
     vTaskDelay(5000 / portTICK_PERIOD_MS);
     
     for(;;)
@@ -184,11 +94,9 @@ static void _modbus_task(void * pvParameters)
 
 void FSM_CONTROL(void)
 {
-
-
-
-   parse_read(FSM_State);
-   parse_write(FSM_State);
+   read_all_coils();
+   //parse_read('1');
+   //parse_write(FSM_State);
    vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
 
 }
@@ -250,20 +158,6 @@ void parse_write(char c)
    }
 }
 
-
-
-void Print_Function_Debug(void)
-{
-    printf("\r\nPick command to send\r\n1. Read all coils.\r\n");
-    printf("2. Read all inputs.\r\n3. Read all holding registers.\r\n");
-    printf("4. Read all input registers.\r\n5. Turn coil 6 on.\r\n6. ");
-    printf("Write 0x4444 to register 0x03\r\n7. Set 8 coils using 0x50 as mask\r\n");
-    printf("8. Set 2 registers to 0x1111, 0x2222\r\n9. Send unknown command\r\n");
-}
-
-
-
-
 /*This function may come in handy for you since MODBUS uses MSB first.*/
 int8_t swap_bits(int8_t c)
 {
@@ -279,12 +173,14 @@ int8_t swap_bits(int8_t c)
 void read_all_coils(void)
 {
    printf("Coils:\r\n");
-   if(!modbus_read_coils(MODBUS_SLAVE_ADDRESS[Current],0,8))
+   modbus_rx_buf_struct rx_buf;
+
+   if(modbus_read_coils(2,0,0, &rx_buf))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
+      for(int i=1; i < (rx_buf.len); ++i)
+         printf("%X ", rx_buf.data[i]);
       printf("\r\n\r\n");
    }
    else
