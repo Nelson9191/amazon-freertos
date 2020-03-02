@@ -94,10 +94,11 @@ static void _modbus_task(void * pvParameters)
 
 void FSM_CONTROL(void)
 {
-   read_all_coils();
-   //parse_read('1');
+   //read_all_coils();
+   parse_read(FSM_State++);
    //parse_write(FSM_State);
    vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
+   FSM_State=(FSM_State==4)?0:FSM_State+1;
 
 }
 
@@ -106,26 +107,26 @@ void FSM_CONTROL(void)
 
 //*******************************************************************
 
-void parse_read(char c)
+void parse_read(uint8_t c)
 {
    switch(c)
    {
-      case '1':
+      case 0:
          read_all_coils();
       
       
       break; 
-      case '2':
+      case 1:
          read_all_inputs();
       
       
       
       break; 
-      case '3':
+      case 2:
          read_all_holding();
       
       break; 
-      case '4':
+      case 3:
          read_all_input_reg();
       break; 
 
@@ -175,12 +176,12 @@ void read_all_coils(void)
    printf("Coils:\r\n");
    modbus_rx_buf_struct rx_buf;
 
-   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,0, &rx_buf))
-   {
+   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,8))
+  {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (rx_buf.len); ++i)
-         printf("%X ", rx_buf.data[i]);
+      for(int i=1; i < (Slaves[Current].len); ++i)
+         printf("%X ", Slaves[Current].data[i]);
       printf("\r\n\r\n");
    }
    else

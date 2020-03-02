@@ -5,10 +5,10 @@
 #define MODBUS_PERIOD_S       1 * 1000   
 
 
-#define modbus_timming_ms       3*1000      
+#define modbus_timming_ms       1000      
 
 
-#define MODBUS_SLAVE_0_ADDRESS    0x0A
+#define MODBUS_SLAVE_0_ADDRESS    0x0a
 #define MODBUS_SLAVE_1_ADDRESS    0x01
 #define MODBUS_SLAVE_2_ADDRESS    0x02
 #define MODBUS_SLAVE_3_ADDRESS    0x03
@@ -42,7 +42,7 @@ void write_coils(void);
 void write_regs(void);
 void unknown_func(void);
 
-void parse_read(char );
+void parse_read(uint8_t );
 void parse_write(char );
 
 

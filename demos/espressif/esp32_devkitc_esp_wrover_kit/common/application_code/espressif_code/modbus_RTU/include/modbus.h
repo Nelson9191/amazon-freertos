@@ -28,7 +28,7 @@
 #endif// o una interrupció sèrie assíncrona 
 
 #ifndef MODBUS_SERIAL_BAUD
-#define MODBUS_SERIAL_BAUD 9600
+#define MODBUS_SERIAL_BAUD 76800
 #endif
 
 #ifndef MODBUS_SERIAL_RX_PIN
@@ -220,7 +220,7 @@ void incomming_modbus_serial_new(void);
 //MASTER API FUNCTIONS PROTOTYPES:
 //All master API functions return 0 on success. 
 
-bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct);
+bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity);
 bool modbus_read_discrete_input(int8_t, int16_t, int16_t);
 
 bool modbus_read_holding_registers(int8_t, int16_t, int16_t);

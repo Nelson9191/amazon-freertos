@@ -107,10 +107,9 @@ void modbus_serial_putc(uint8_t c)
 }
 
 
-
-
 void modbus_serial_send_stop(void)
 {
+       
         int8_t crc_low, crc_high;
         
         crc_high = modbus_serial_crc.b[1];  //Guarda el valor del Checksum MSB
@@ -124,9 +123,6 @@ void modbus_serial_send_stop(void)
         ets_delay_us(3500000/MODBUS_SERIAL_BAUD); //3.5 character delay
         modbus_serial_crc.d=0xFFFF;
 }
-
-
-
 /*
 // Objectiu:
 Enviar missastge pel bus RS485
@@ -191,7 +187,7 @@ read_coils
 */
 
 
-bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct)
+bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity)
 {
         bool ok;
         uint8_t msg[] = {address, FUNC_READ_COILS, 
@@ -204,18 +200,12 @@ bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity,
         modbus_serial_putc(make8(quantity,1));
         modbus_serial_putc(make8(quantity,0));
         
-        uint16_t CRC_RTN = CRC16 (msg, 6);
+        uint16_t CRC_RTN =CRC16 (msg, 6);
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
-
-        if (ok)
-        {
-                modbus_copy_rx_buffer(rx_struct);
-        }
-
+         ok = modbus_read_hw_buffer();
         return ok;
 }
 
@@ -1158,9 +1148,9 @@ bool modbus_read_hw_buffer()
 
         memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
 
-        while ((++broke<150) && (len<=0))
+        while ((++broke<10) && (len<=0))
         {
-                vTaskDelay(10 / portTICK_PERIOD_MS);
+                vTaskDelay(100 / portTICK_PERIOD_MS);
                 uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
                 if(len){
                         len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
