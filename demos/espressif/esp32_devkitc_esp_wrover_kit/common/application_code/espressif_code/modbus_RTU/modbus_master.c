@@ -31,7 +31,7 @@ uart_config_t uart_config = {
     .baud_rate = MODBUS_SERIAL_BAUD,
     .data_bits = UART_DATA_8_BITS,
     .parity    = UART_PARITY_DISABLE,
-    .stop_bits = UART_STOP_BITS_2,
+    .stop_bits = UART_STOP_BITS_1,
     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
 };
 
@@ -94,8 +94,8 @@ static void _modbus_task(void * pvParameters)
 
 void FSM_CONTROL(void)
 {
-   //read_all_coils();
-   parse_read(FSM_State++);
+   read_all_coils();
+   //parse_read(FSM_State++);
    //parse_write(FSM_State);
    vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
    FSM_State=(FSM_State==4)?0:FSM_State+1;
@@ -176,7 +176,7 @@ void read_all_coils(void)
    printf("Coils:\r\n");
    modbus_rx_buf_struct rx_buf;
 
-   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,8))
+   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,10))
   {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/

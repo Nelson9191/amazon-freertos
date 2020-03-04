@@ -78,15 +78,21 @@ int32_t modbus_serial_wait=MODBUS_SERIAL_TIMEOUT;
 
 uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen )
 {
-    uint8_t nTemp;
+    uint8_t nTemp,temp1,temp2;
     uint16_t wCRCWord = 0xFFFF;
+    
 
-   while (usDataLen--)
-   {
-      nTemp = *puchMsg++ ^ wCRCWord;
-      wCRCWord >>= 8;
-      wCRCWord ^= wCRCTable[nTemp];
-   }
+        while (usDataLen--)
+        {
+        nTemp = *puchMsg++ ^ wCRCWord;
+        wCRCWord >>= 8;
+        wCRCWord ^= wCRCTable[nTemp];
+        }
+    temp1=  (uint8_t )(wCRCWord >> 8);
+     temp2=(uint8_t )wCRCWord;
+
+     wCRCWord=(temp2<<8)|temp1;
+
    return wCRCWord;
     //modbus_serial_crc.b[1] = wCRCWord >> 8;
     //modbus_serial_crc.b[0] = (uint8_t)wCRCWord; 
@@ -1170,7 +1176,7 @@ bool modbus_read_hw_buffer()
                 modbus_rx.address = buffer[0];
                 modbus_rx.func = buffer[1];
                 
-                for (int i = 0; i < len - 2; i++){
+                for (int i = 0; i < len - 4; i++){
                         modbus_rx.data[i] = buffer[i + 2];
                         printf("-%x", buffer[i + 2]);
                 }
@@ -1180,9 +1186,9 @@ bool modbus_read_hw_buffer()
                 
                 uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 )|| (buffer[len-1]);
 
-                uint16_t CRC_RTN = CRC16 (buffer, len - 3);
+                uint16_t CRC_RTN = CRC16 (buffer, len - 2);
                 printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
-                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN<<8), (uint8_t)(CRC_RTN));
+                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
 
                 //Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
                 //printf("Data REceived: \n");  

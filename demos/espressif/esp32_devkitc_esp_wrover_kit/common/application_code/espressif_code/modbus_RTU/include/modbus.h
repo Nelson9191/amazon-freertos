@@ -28,7 +28,7 @@
 #endif// o una interrupció sèrie assíncrona 
 
 #ifndef MODBUS_SERIAL_BAUD
-#define MODBUS_SERIAL_BAUD 76800
+#define MODBUS_SERIAL_BAUD 57600
 #endif
 
 #ifndef MODBUS_SERIAL_RX_PIN

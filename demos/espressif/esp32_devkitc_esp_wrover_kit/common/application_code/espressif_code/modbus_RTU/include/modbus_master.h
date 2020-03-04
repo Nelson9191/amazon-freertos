@@ -5,7 +5,7 @@
 #define MODBUS_PERIOD_S       1 * 1000   
 
 
-#define modbus_timming_ms       1000      
+#define modbus_timming_ms       800      
 
 
 #define MODBUS_SLAVE_0_ADDRESS    0x0a
