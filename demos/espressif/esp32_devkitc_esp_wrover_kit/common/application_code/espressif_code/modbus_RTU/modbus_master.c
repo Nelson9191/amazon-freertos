@@ -59,7 +59,7 @@ static void _modbus_task(void * pvParameters)
     printf("Modbus created\n");
 
     vTaskDelay(5000 / portTICK_PERIOD_MS);
-    
+    Current=0;
     for(;;)
     {
 
@@ -97,11 +97,12 @@ static void _modbus_task(void * pvParameters)
 
 void FSM_CONTROL(void)
 {
-   read_all_coils();
-   //parse_read(FSM_State++);
+  // read_all_coils();
+   parse_read(FSM_State);
    //parse_write(FSM_State);
-   vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
-   FSM_State=(FSM_State==4)?0:FSM_State+1;
+   
+   if(++FSM_State==4)
+   FSM_State=0;
 
 }
 
@@ -121,8 +122,7 @@ void parse_read(uint8_t c)
       break; 
       case 1:
          read_all_inputs();
-      
-      
+       
       
       break; 
       case 2:
@@ -137,6 +137,7 @@ void parse_read(uint8_t c)
 
       break;
    }
+   vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
   
 }
 
@@ -180,7 +181,7 @@ void read_all_coils(void)
    
    for (int i = 0; i < Slave_QQTy; i++)
    {
-      if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,10, &Slaves[i]))
+      if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[Current],0,10, &Slaves[Current]))
       {
          printf("Data: ");
 
@@ -204,7 +205,7 @@ void read_all_coils(void)
 void read_all_inputs(void)
 {
    printf("Inputs:\r\n");
-   if(!(modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[Current],0,8)))
+   if(!(modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[Current],0,8, &Slaves[Current])))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
@@ -226,7 +227,7 @@ void read_all_inputs(void)
 void read_all_holding(void)
 {
    printf("Holding Registers:\r\n");
-   if(!(modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[Current],0,8)))
+   if(!(modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[Current],0,8, &Slaves[Current])))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
@@ -246,7 +247,7 @@ void read_all_holding(void)
 void read_all_input_reg(void)
 {
    printf("Input Registers:\r\n");
-   if(!(modbus_read_input_registers(MODBUS_SLAVE_ADDRESS[Current],0,8)))
+   if(!(modbus_read_input_registers(MODBUS_SLAVE_ADDRESS[Current],0,8, &Slaves[Current])))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/

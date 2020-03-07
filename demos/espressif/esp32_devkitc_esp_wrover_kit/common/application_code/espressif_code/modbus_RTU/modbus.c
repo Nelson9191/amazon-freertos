@@ -261,9 +261,9 @@ read_coils
 */
 
 
-bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct)
+uint8_t modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct)
 {
-   bool ok;
+   uint8_t ok;
    uint8_t msg[] = {address, FUNC_READ_COILS, 
             make8(start_address,1), make8(start_address,0), 
             make8(quantity,1), make8(quantity,0)};
@@ -317,10 +317,10 @@ void modbus_copy_rx_buffer(modbus_rx_buf_struct * rx_struct)
 */
 
 
-bool modbus_read_discrete_input(int8_t address, int16_t start_address, int16_t quantity)
+uint8_t modbus_read_discrete_input(int8_t address, int16_t start_address, int16_t quantity,modbus_rx_buf_struct * rx_struct)
 {       
 
-        bool ok;
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_READ_DISCRETE_INPUT, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)};    
@@ -335,9 +335,11 @@ bool modbus_read_discrete_input(int8_t address, int16_t start_address, int16_t q
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-         ok = modbus_read_hw_buffer(address);
+        ok = modbus_read_hw_buffer(address);
+
+        modbus_copy_rx_buffer(rx_struct);
+
         return ok;
-        
 }
 
 
@@ -351,9 +353,9 @@ read_holding_registers
                 int16      quantity           Amount of addresses to read
         Output: exception                     0 if no error, else the exception*/
         
-bool modbus_read_holding_registers(int8_t address, int16_t start_address, int16_t quantity)
+uint8_t modbus_read_holding_registers(int8_t address, int16_t start_address, int16_t quantity,modbus_rx_buf_struct * rx_struct)
 {
-        bool ok;
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_READ_HOLDING_REGISTERS, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)};
@@ -369,9 +371,10 @@ bool modbus_read_holding_registers(int8_t address, int16_t start_address, int16_
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
        // MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        ok = modbus_read_hw_buffer(address);
-        
-        
+         ok = modbus_read_hw_buffer(address);
+
+        modbus_copy_rx_buffer(rx_struct);
+
         return ok;
 
 }
@@ -386,9 +389,9 @@ bool modbus_read_holding_registers(int8_t address, int16_t start_address, int16_
         int16      quantity           Amount of addresses to read
         Output:    exception                     0 if no error, else the exception
 */
-bool modbus_read_input_registers(int8_t address, int16_t start_address, int16_t quantity)
+uint8_t modbus_read_input_registers(int8_t address, int16_t start_address, int16_t quantity,modbus_rx_buf_struct * rx_struct)
 {
-        bool ok;
+        uint8_t ok;
         uint8_t msg[] = {address, FUNC_READ_INPUT_REGISTERS, 
                         make8(start_address,1), make8(start_address,0), 
                         make8(quantity,1), make8(quantity,0)}; 
@@ -405,7 +408,10 @@ bool modbus_read_input_registers(int8_t address, int16_t start_address, int16_t 
         modbus_serial_send_stop();
       /*  MODBUS_SERIAL_WAIT_FOR_RESPONSE();
         return modbus_rx.error;//*/
-        ok = modbus_read_hw_buffer(address);
+         ok = modbus_read_hw_buffer(address);
+
+        modbus_copy_rx_buffer(rx_struct);
+
         return ok;
         
 }
