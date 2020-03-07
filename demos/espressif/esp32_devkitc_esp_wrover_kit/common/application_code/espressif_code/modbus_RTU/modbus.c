@@ -22,6 +22,9 @@ int modbus_serial_state = MODBUS_GETADDY;
 uint8_t Modbus_RX_BUFFER[MODBUS_SERIAL_RX_BUFFER_SIZE];
 
 
+extern bool Valid_data_Flag;
+extern  modbus_rx_buf_struct Slaves[];
+extern uint8_t Current;
 
 int len=0;        
        // memset(data_buffer, '\0', MODBUS_SERIAL_RX_BUFFER_SIZE+10);
@@ -76,6 +79,76 @@ uint16_t wCRCTable[] = {
 int32_t modbus_serial_wait=MODBUS_SERIAL_TIMEOUT;
 
 
+
+
+
+bool modbus_read_hw_buffer(uint8_t Add)
+{
+        uint8_t index = 0;
+        uint16_t broke = 0;
+        int len = 0;
+        bool ok = false;
+
+        uint8_t * buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+        if (!buffer){
+                modbus_rx.error = TIMEOUT; //Crear código para malloc
+                return false;
+        }
+
+        memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+        while ((++broke<10) && (len<=0))
+        {
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+                uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
+                if(len){
+                        len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
+                }
+        }
+        
+        printf("Len= %d \n str: %*.s\n",len, len, buffer);
+
+        if(len <= 0)
+        {
+                modbus_rx.error = TIMEOUT;
+                printf("Modbus Timed out \n");
+                ok = false;
+        }
+        else
+        {
+                modbus_rx.error = 0;
+                modbus_rx.address = buffer[0];
+                modbus_rx.func = buffer[1];
+                
+                
+                for (int i = 0; i < len - 4; i++)
+                {
+                     modbus_rx.data[i] = buffer[i + 2];
+                    // printf("-%x", buffer[i + 2]);
+                }
+                  
+                  printf("\n");
+
+                  
+                  uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 ) | (buffer[len-1]);
+
+                  uint16_t CRC_RTN = CRC16 (buffer, len - 2);
+                  printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
+                  printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
+
+                  Valid_data_Flag = ((CRC_RTN == CRC_RCV)&&((Add==modbus_rx.address)))?MODBUS_TRUE:MODBUS_FALSE;
+                  //printf("Data REceived: \n");  
+                  //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
+                  ok=Valid_data_Flag;   
+                
+        }
+
+        free(buffer);
+        return ok;
+} 
+
+
 uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen )
 {
     uint8_t nTemp,temp1,temp2;
@@ -89,7 +162,7 @@ uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen )
         wCRCWord ^= wCRCTable[nTemp];
         }
     temp1=  (uint8_t )(wCRCWord >> 8);
-     temp2=(uint8_t )wCRCWord;
+    temp2=(uint8_t )wCRCWord;
 
      wCRCWord=(temp2<<8)|temp1;
 
@@ -193,7 +266,7 @@ read_coils
 */
 
 
-bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity)
+uint8_t modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity)
 {
         bool ok;
         uint8_t msg[] = {address, FUNC_READ_COILS, 
@@ -211,8 +284,14 @@ bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity)
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         
         modbus_serial_send_stop();
-         ok = modbus_read_hw_buffer();
-        return ok;
+
+         
+        ok = modbus_read_hw_buffer(address);
+        modbus_copy_rx_buffer(&Slaves[Current]); 
+       // Slaves[Current]=modbus_rx;     
+        
+
+        return Slaves[Current].error;
 }
 
 void modbus_copy_rx_buffer(modbus_rx_buf_struct * rx_struct)
@@ -258,7 +337,7 @@ bool modbus_read_discrete_input(int8_t address, int16_t start_address, int16_t q
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-         ok = modbus_read_hw_buffer();
+         ok = modbus_read_hw_buffer(address);
         return ok;
         
 }
@@ -292,8 +371,11 @@ bool modbus_read_holding_registers(int8_t address, int16_t start_address, int16_
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
        // MODBUS_SERIAL_WAIT_FOR_RESPONSE();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
+        
+        
         return ok;
+
 }
 
 
@@ -325,7 +407,7 @@ bool modbus_read_input_registers(int8_t address, int16_t start_address, int16_t 
         modbus_serial_send_stop();
       /*  MODBUS_SERIAL_WAIT_FOR_RESPONSE();
         return modbus_rx.error;//*/
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
         
 }
@@ -364,7 +446,7 @@ uint8_t modbus_write_single_coil(int8_t address, int16_t output_address, int on)
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-       ok = modbus_read_hw_buffer();
+       ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -393,7 +475,7 @@ uint8_t modbus_write_single_register(int8_t address, int16_t reg_address, int16_
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -411,7 +493,7 @@ uint8_t modbus_read_exception_status(int8_t address)
         uint8_t ok;
         modbus_serial_send_start(address, FUNC_READ_EXCEPTION_STATUS);
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -443,7 +525,7 @@ uint8_t modbus_diagnostics(int8_t address, int16_t sub_func, int16_t data)
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -458,7 +540,7 @@ uint8_t modbus_get_comm_event_counter(int8_t address)
         uint8_t ok;
         modbus_serial_send_start(address, FUNC_GET_COMM_EVENT_COUNTER);
         modbus_serial_send_stop();
-       ok = modbus_read_hw_buffer();
+       ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -472,7 +554,7 @@ uint8_t modbus_get_comm_event_log(int8_t address)
         uint8_t ok;
         modbus_serial_send_start(address, FUNC_GET_COMM_EVENT_LOG);
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -509,7 +591,7 @@ uint8_t modbus_write_multiple_coils(int8_t address, int16_t start_address, int16
         modbus_serial_crc.b[1] = CRC_RTN >> 8;
         modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -544,7 +626,7 @@ uint8_t modbus_write_multiple_registers(int8_t address, int16_t start_address, i
 
         CRC16(msg, 6);
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -558,7 +640,7 @@ uint8_t modbus_report_slave_id(int8_t address)
         uint8_t ok;
         modbus_serial_send_start(address, FUNC_REPORT_SLAVE_ID);
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
         
 }
@@ -587,7 +669,7 @@ uint8_t modbus_read_file_record(int8_t address, int8_t byte_count, modbus_read_s
                 request++;
         }
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -621,7 +703,7 @@ uint8_t modbus_write_file_record(int8_t address, int8_t byte_count, modbus_write
                 }request++;
         }
         modbus_serial_send_stop();
-       ok = modbus_read_hw_buffer();
+       ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -644,7 +726,7 @@ uint8_t modbus_mask_write_register(int8_t address, int16_t reference_address,int
         modbus_serial_putc(make8(OR_mask, 1));
         modbus_serial_putc(make8(OR_mask, 0));
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -680,7 +762,7 @@ uint8_t modbus_read_write_multiple_registers(int8_t address, int16_t read_start,
                 modbus_serial_putc(make8(write_registers_value[i+1], 0));
         }
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
 
@@ -698,7 +780,7 @@ uint8_t modbus_read_FIFO_queue(int8_t address, int16_t FIFO_address)
         modbus_serial_putc(make8(FIFO_address, 1));
         modbus_serial_putc(make8(FIFO_address, 0));
         modbus_serial_send_stop();
-        ok = modbus_read_hw_buffer();
+        ok = modbus_read_hw_buffer(address);
         return ok;
 }
         
@@ -1137,70 +1219,3 @@ void modbus_exception_rsp(int8_t address, int16_t func, exception error)
 
 #endif
 
-
-bool modbus_read_hw_buffer()
-{
-        uint8_t index = 0;
-        uint16_t broke = 0;
-        int len = 0;
-        bool ok = false;
-
-        uint8_t * buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
-
-        if (!buffer){
-                modbus_rx.error = TIMEOUT; //Crear código para malloc
-                return false;
-        }
-
-        memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
-
-        while ((++broke<10) && (len<=0))
-        {
-                vTaskDelay(100 / portTICK_PERIOD_MS);
-                uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
-                if(len){
-                        len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
-                }
-        }
-        
-        printf("Len= %d \n str: %*.s\n",len, len, buffer);
-
-        if(len <= 0)
-        {
-                modbus_rx.error = TIMEOUT;
-                printf("Modbus Timed out \n");
-                ok = false;
-        }
-        else
-        {
-                modbus_rx.error = 0;
-                modbus_rx.address = buffer[0];
-                modbus_rx.func = buffer[1];
-                
-                for (int i = 0; i < len - 4; i++){
-                        modbus_rx.data[i] = buffer[i + 2];
-                        printf("-%x", buffer[i + 2]);
-                }
-                
-                printf("\n");
-
-                
-                uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 ) | (buffer[len-1]);
-
-                uint16_t CRC_RTN = CRC16 (buffer, len - 2);
-                printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
-<<<<<<< HEAD
-                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-
-                //Valid_data_Flag = (CRC_RTN == CRC_RCV)?MODBUS_TRUE:MODBUS_FALSE;
-                //printf("Data REceived: \n");  
-                //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
-=======
-                printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN<<8), (uint8_t)(CRC_RTN));
->>>>>>> 76379a6b26915e32d828f4baa7cbf0c05c2e252e
-                ok = CRC_RTN == CRC_RCV;   
-        }
-
-        free(buffer);
-        return ok;
-} 

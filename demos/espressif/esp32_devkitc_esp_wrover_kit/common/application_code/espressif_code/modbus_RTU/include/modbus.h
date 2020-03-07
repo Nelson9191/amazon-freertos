@@ -212,7 +212,7 @@ int modbus_kbhit(void);
 void modbus_serial_send_start(uint8_t, uint8_t);
 uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen);
 uint16_t crc_modbus( const unsigned char *input_str, int num_bytes );
-bool modbus_read_hw_buffer();
+bool modbus_read_hw_buffer(uint8_t);
 
 
 
@@ -220,7 +220,8 @@ void incomming_modbus_serial_new(void);
 //MASTER API FUNCTIONS PROTOTYPES:
 //All master API functions return 0 on success. 
 
-bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity);
+uint8_t modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity);
+
 bool modbus_read_discrete_input(int8_t, int16_t, int16_t);
 
 bool modbus_read_holding_registers(int8_t, int16_t, int16_t);
