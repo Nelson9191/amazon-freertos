@@ -45,5 +45,7 @@ void unknown_func(void);
 void parse_read(uint8_t );
 void parse_write(char );
 
+void clear_modbus_buff(modbus_rx_buf_struct * modbus_buffer);
+
 
 #endif

@@ -118,12 +118,13 @@ bool modbus_read_hw_buffer(uint8_t Add)
         modbus_rx.address = buffer[0];
         modbus_rx.func = buffer[1];
         modbus_rx.len = len - 4;
+        printf("LEN:: %d\n", modbus_rx.len);
         
         
         for (int i = 0; i < len - 4; i++)
         {
             modbus_rx.data[i] = buffer[i + 2];
-            // printf("-%x", buffer[i + 2]);
+            //printf("-%x", buffer[i + 2]);
         }
             
         uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 ) | (buffer[len-1]);

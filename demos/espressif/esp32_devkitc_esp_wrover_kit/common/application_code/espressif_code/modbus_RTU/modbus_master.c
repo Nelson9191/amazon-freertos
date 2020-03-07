@@ -15,7 +15,7 @@
 #include "gpio_handler.h"
 #include "queue_conf.h"
 
-volatile uint8_t Current=0;
+volatile uint8_t current_slave_ctr=0;
 
 
 volatile uint8_t FSM_State=0; 
@@ -56,40 +56,42 @@ void modbus_master_init(){
 static void _modbus_task(void * pvParameters)
 {
 
-    printf("Modbus created\n");
+   printf("Modbus created\n");
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-    Current=0;
-    for(;;)
-    {
+   vTaskDelay(5000 / portTICK_PERIOD_MS);
+   current_slave_ctr=0;
+   for(;;)
+   {
 
-        FSM_CONTROL();
-      /*   printf("Apagó\n");   
-          gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 0);
-         vTaskDelay(5000 / portTICK_PERIOD_MS);
-         printf("Prendió\n");
-         gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 1);
+      FSM_CONTROL();
+      vTaskDelay(2000 / portTICK_PERIOD_MS);
+      ;
+   /*   printf("Apagó\n");   
+         gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 0);
+      vTaskDelay(5000 / portTICK_PERIOD_MS);
+      printf("Prendió\n");
+      gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 1);
 
-            vTaskDelay(5000 / portTICK_PERIOD_MS);//*/
-      /*  read_all_coils();
-        
-        read_all_inputs();
-        vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
-        read_all_holding();
-        vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
-        read_all_input_reg();
-        vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);    
-        
-        //write_coils();
-        //vTaskDelay(3000 / portTICK_PERIOD_MS);
-        //write_regs();
-        //vTaskDelay(3000 / portTICK_PERIOD_MS);
-       // unknown_func();
+         vTaskDelay(5000 / portTICK_PERIOD_MS);//*/
+   /*  read_all_coils();
+      
+      read_all_inputs();
+      vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
+      read_all_holding();
+      vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
+      read_all_input_reg();
+      vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);    
+      
+      //write_coils();
+      //vTaskDelay(3000 / portTICK_PERIOD_MS);
+      //write_regs();
+      //vTaskDelay(3000 / portTICK_PERIOD_MS);
+      // unknown_func();
 
-        //vTaskDelay(MODBUS_PERIOD_S / portTICK_PERIOD_MS);//*/
+      //vTaskDelay(MODBUS_PERIOD_S / portTICK_PERIOD_MS);//*/
 
 
-    }
+   }
 
 }
 
@@ -99,9 +101,10 @@ void FSM_CONTROL(void)
 {
   // read_all_coils();
    parse_read(FSM_State);
+   clear_modbus_buff(&Slaves[current_slave_ctr]);
    //parse_write(FSM_State);
    
-   if(++FSM_State==4)
+   if(++FSM_State==3)
    FSM_State=0;
 
 }
@@ -137,7 +140,6 @@ void parse_read(uint8_t c)
 
       break;
    }
-   vTaskDelay(modbus_timming_ms / portTICK_PERIOD_MS);
   
 }
 
@@ -178,24 +180,22 @@ int8_t swap_bits(int8_t c)
 void read_all_coils(void)
 {
    printf("Coils-> ");
-   
-   for (int i = 0; i < Slave_QQTy; i++)
-   {
-      if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[Current],0,10, &Slaves[Current]))
-      {
-         printf("Data: ");
 
-         /*Started at 1 since 0 is quantity of coils*/
-         for(int j = 0; j < (Slaves[i].len); ++j)
-         {
-            printf("0x%X ", Slaves[i].data[j]);
-         }
-         printf("\n\n");
-      }
-      else
+   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,10, &Slaves[current_slave_ctr]))
+   {
+      printf("Len: %d\n", Slaves[current_slave_ctr].len);
+      printf("Data: ");
+
+      /*Started at 1 since 0 is quantity of coils*/
+      for(int i = 1; i < (Slaves[current_slave_ctr].len); ++i)
       {
-         printf("<-**Exception= %X**->\r\n\r\n", Slaves[i].error);
+         printf("0x%X ", Slaves[current_slave_ctr].data[i]);
       }
+      printf("\n\n");
+   }
+   else
+   {
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }
 
@@ -205,17 +205,19 @@ void read_all_coils(void)
 void read_all_inputs(void)
 {
    printf("Inputs:\r\n");
-   if(!(modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[Current],0,8, &Slaves[Current])))
+   if(modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
-      printf("\r\n\r\n");
+      for(int i = 1; i < Slaves[current_slave_ctr].len; ++i)
+      {
+         printf("%X ", Slaves[current_slave_ctr].data[i]);
+      }
+      printf("\n\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }
 
@@ -227,17 +229,17 @@ void read_all_inputs(void)
 void read_all_holding(void)
 {
    printf("Holding Registers:\r\n");
-   if(!(modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[Current],0,8, &Slaves[Current])))
+   if(modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
+      for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
+         printf("%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }   
 
@@ -247,17 +249,18 @@ void read_all_holding(void)
 void read_all_input_reg(void)
 {
    printf("Input Registers:\r\n");
-   if(!(modbus_read_input_registers(MODBUS_SLAVE_ADDRESS[Current],0,8, &Slaves[Current])))
+   if(!(modbus_read_input_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr])))
    {
+      printf("Len: %d\n", Slaves[current_slave_ctr].len);
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
+      for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
+         printf("%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }
 
@@ -270,17 +273,17 @@ void read_all_input_reg(void)
 void write_coil(void)
 {
    printf("Writing Single Coil:\r\n");
-   if(!(modbus_write_single_coil(MODBUS_SLAVE_ADDRESS[Current],6,MODBUS_TRUE)))
+   if(!(modbus_write_single_coil(MODBUS_SLAVE_ADDRESS[current_slave_ctr],6,MODBUS_TRUE)))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
+      for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
+         printf("%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }
 
@@ -293,17 +296,17 @@ void write_coil(void)
 void write_reg(void)
 {
    printf("Writing Single Register:\r\n");
-   if(!(modbus_write_single_register(MODBUS_SLAVE_ADDRESS[Current],3,0x4444)))
+   if(!(modbus_write_single_register(MODBUS_SLAVE_ADDRESS[current_slave_ctr],3,0x4444)))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
+      for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
+         printf("%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }
 
@@ -317,17 +320,17 @@ void write_coils(void)
 {
    int8_t coils[1] = { 0x50 };
    printf("Writing Multiple Coils:\r\n");
-   if(!(modbus_write_multiple_coils(MODBUS_SLAVE_ADDRESS[Current],0,8,coils)))
+   if(!(modbus_write_multiple_coils(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8,coils)))
   {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
+      for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
+         printf("%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }
 
@@ -340,17 +343,17 @@ void write_regs(void)
 {
    int16_t reg_array[2] = {0x1111, 0x2222};
    printf("Writing Multiple Registers:\r\n");
-   if(!(modbus_write_multiple_registers(MODBUS_SLAVE_ADDRESS[Current],0,2,reg_array)))
+   if(!(modbus_write_multiple_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,2,reg_array)))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
+      for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
+         printf("%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    } 
 }
 
@@ -363,15 +366,24 @@ void unknown_func(void)
 {
    printf("Trying unknown function\r\n");
    printf("Diagnostic:\r\n");
-   if(!(modbus_diagnostics(MODBUS_SLAVE_ADDRESS[Current],0,0)))
+   if(!(modbus_diagnostics(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,0)))
    {
       printf("Data: ");
-      printf("%X ", Slaves[Current].data[i]);
+      printf("%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      printf("<-**Exception= %X**->\r\n\r\n", Slaves[current_slave_ctr].error);
    }
 }
 */
+
+void clear_modbus_buff(modbus_rx_buf_struct * modbus_buffer)
+{
+   memset(modbus_buffer->data, '\0', sizeof(int8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+   modbus_buffer->address = 0;
+   modbus_buffer->len = 0;
+   modbus_buffer->func = 0;
+   modbus_buffer->error = 0;
+}
