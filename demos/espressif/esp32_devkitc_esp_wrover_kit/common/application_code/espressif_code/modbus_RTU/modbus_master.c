@@ -13,6 +13,7 @@
 
 #include "modbus_master.h"
 #include "gpio_handler.h"
+#include "queue_conf.h"
 
 volatile uint8_t Current=0;
 
@@ -175,19 +176,20 @@ int8_t swap_bits(int8_t c)
 
 void read_all_coils(void)
 {
-   printf("Coils:\r\n");
+   printf("Coils-> ");
    
-   for (int i = 0; i < MODBUS_SLAVES; i++)
+   for (int i = 0; i < Slave_QQTy; i++)
    {
-      if(!modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,10, &Slaves[i]))
+      if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,10, &Slaves[i]))
       {
          printf("Data: ");
+
          /*Started at 1 since 0 is quantity of coils*/
-         for(int i=1; i < (Slaves[i].len); ++i)
+         for(int j = 0; j < (Slaves[i].len); ++j)
          {
-            printf("%X ", Slaves[i].data[i]);
+            printf("0x%X ", Slaves[i].data[j]);
          }
-         printf("\r\n\r\n");
+         printf("\n\n");
       }
       else
       {

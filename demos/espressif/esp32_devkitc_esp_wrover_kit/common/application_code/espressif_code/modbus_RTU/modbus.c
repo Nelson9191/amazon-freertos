@@ -1,6 +1,5 @@
 
 #include "modbus.h"
-//#include "modbus_master.h"
 #include "stdio.h"
 #include "string.h"
 #include "FreeRTOS.h"
@@ -8,7 +7,6 @@
 #include "driver/uart.h"
 #include "gpio_handler.h"
 #include "gpio_info.h"
-//#include "utils.h"
 
 
 
@@ -83,68 +81,66 @@ int32_t modbus_serial_wait=MODBUS_SERIAL_TIMEOUT;
 
 bool modbus_read_hw_buffer(uint8_t Add)
 {
-        uint8_t index = 0;
-        uint16_t broke = 0;
-        int len = 0;
-        bool ok = false;
+    uint8_t index = 0;
+    uint16_t broke = 0;
+    int len = 0;
+    bool ok = false;
 
-        uint8_t * buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+    uint8_t * buffer = malloc(sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
 
-        if (!buffer){
-                modbus_rx.error = TIMEOUT; //Crear código para malloc
-                return false;
+    if (!buffer){
+        modbus_rx.error = TIMEOUT; //Crear código para malloc
+        return false;
+    }
+
+    memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+    while ((++broke<10) && (len<=0))
+    {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
+        if(len){
+                len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
         }
+    }
+    
+    //printf("Len = %d\n",len);
 
-        memset(buffer, '\0', sizeof(uint8_t) * MODBUS_SERIAL_RX_BUFFER_SIZE);
-
-        while ((++broke<10) && (len<=0))
-        {
-                vTaskDelay(100 / portTICK_PERIOD_MS);
-                uart_get_buffered_data_len(UART_NUM_1, (size_t*)&len);
-                if(len){
-                        len = uart_read_bytes(UART_NUM_1,buffer, len, 100);
-                }
-        }
+    if(len <= 0)
+    {
+        modbus_rx.error = TIMEOUT;
+        printf("Modbus Timed out \n");
+        ok = false;
+    }
+    else
+    {
+        modbus_rx.error = 0;
+        modbus_rx.address = buffer[0];
+        modbus_rx.func = buffer[1];
+        modbus_rx.len = len - 4;
         
-        printf("Len= %d \n str: %*.s\n",len, len, buffer);
-
-        if(len <= 0)
+        
+        for (int i = 0; i < len - 4; i++)
         {
-                modbus_rx.error = TIMEOUT;
-                printf("Modbus Timed out \n");
-                ok = false;
+            modbus_rx.data[i] = buffer[i + 2];
+            // printf("-%x", buffer[i + 2]);
         }
-        else
-        {
-                modbus_rx.error = 0;
-                modbus_rx.address = buffer[0];
-                modbus_rx.func = buffer[1];
-                
-                
-                for (int i = 0; i < len - 4; i++)
-                {
-                     modbus_rx.data[i] = buffer[i + 2];
-                    // printf("-%x", buffer[i + 2]);
-                }
-                  
-                  printf("\n");
+            
+        uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 ) | (buffer[len-1]);
 
-                  
-                  uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 ) | (buffer[len-1]);
+        uint16_t CRC_RTN = CRC16 (buffer, len - 2);
+        //printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
+        //printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
 
-                  uint16_t CRC_RTN = CRC16 (buffer, len - 2);
-                  printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
-                  printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
+        Valid_data_Flag = ((CRC_RTN == CRC_RCV)&&((Add==modbus_rx.address)))?MODBUS_TRUE:MODBUS_FALSE;
+        //printf("Data REceived: \n");  
+        //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
+        ok=Valid_data_Flag;   
+        
+    }
 
-                  Valid_data_Flag = ((CRC_RTN == CRC_RCV)&&((Add==modbus_rx.address)))?MODBUS_TRUE:MODBUS_FALSE;
-                  //printf("Data REceived: \n");  
-                  //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
-                  ok=Valid_data_Flag;   
-                
-        }
-
-        free(buffer);
-        return ok;
+    free(buffer);
+    return ok;
 } 
 
 
@@ -303,7 +299,11 @@ void modbus_copy_rx_buffer(modbus_rx_buf_struct * rx_struct)
    rx_struct->len = modbus_rx.len;
    rx_struct->func = modbus_rx.func;
    rx_struct->error = modbus_rx.error;
-   strncpy((char *)rx_struct->data, (char *)modbus_rx.data, MODBUS_SERIAL_RX_BUFFER_SIZE);
+
+   for(int i = 0; i < (modbus_rx.len); ++i)
+   {
+      rx_struct->data[i] = modbus_rx.data[i];
+   }
 }
 
 

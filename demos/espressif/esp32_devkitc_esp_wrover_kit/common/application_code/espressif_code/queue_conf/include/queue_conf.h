@@ -28,11 +28,28 @@ struct WIFIMsg{
 };
 
 
+struct ModbusQuery {
+    int8_t slave_address;
+    char function[40];
+    char exception[30];
+    int8_t data[64];
+};
+
+
+struct ModbusResponse {
+    int8_t slave_address;
+    char function[40];
+
+};
+
 void queue_conf_init();
 
 
 void queue_conf_send_mqtt(struct MqttMsg msg);
 
+void queue_conf_send_mqtt_modbus_response(struct ModbusResponse msg);
+
+void queue_conf_send_modbus_query(struct ModbusQuery msg);
 
 void queue_conf_send_gpio(uint32_t _gpio, uint32_t _status);
 
