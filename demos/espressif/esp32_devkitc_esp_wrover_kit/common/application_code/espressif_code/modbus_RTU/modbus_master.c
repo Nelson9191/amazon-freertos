@@ -21,7 +21,9 @@ volatile uint8_t FSM_State=0;
 
 volatile bool Valid_data_Flag=MODBUS_FALSE;
 
-uint8_t MODBUS_SLAVE_ADDRESS[]= {MODBUS_SLAVE_0_ADDRESS, MODBUS_SLAVE_1_ADDRESS, MODBUS_SLAVE_2_ADDRESS, MODBUS_SLAVE_3_ADDRESS,MODBUS_SLAVE_4_ADDRESS,MODBUS_SLAVE_5_ADDRESS,MODBUS_SLAVE_6_ADDRESS,MODBUS_SLAVE_7_ADDRESS,MODBUS_SLAVE_8_ADDRESS,MODBUS_SLAVE_9_ADDRESS};
+#define MODBUS_SLAVES 10
+
+uint8_t MODBUS_SLAVE_ADDRESS[MODBUS_SLAVES]= {MODBUS_SLAVE_0_ADDRESS, MODBUS_SLAVE_1_ADDRESS, MODBUS_SLAVE_2_ADDRESS, MODBUS_SLAVE_3_ADDRESS,MODBUS_SLAVE_4_ADDRESS,MODBUS_SLAVE_5_ADDRESS,MODBUS_SLAVE_6_ADDRESS,MODBUS_SLAVE_7_ADDRESS,MODBUS_SLAVE_8_ADDRESS,MODBUS_SLAVE_9_ADDRESS};
 
 volatile modbus_rx_buf_struct Slaves[Slave_QQTy];  
 
@@ -174,19 +176,23 @@ int8_t swap_bits(int8_t c)
 void read_all_coils(void)
 {
    printf("Coils:\r\n");
-   modbus_rx_buf_struct rx_buf;
-
-   if(!modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,10))
-  {
-      printf("Data: ");
-      /*Started at 1 since 0 is quantity of coils*/
-      for(int i=1; i < (Slaves[Current].len); ++i)
-         printf("%X ", Slaves[Current].data[i]);
-      printf("\r\n\r\n");
-   }
-   else
+   
+   for (int i = 0; i < MODBUS_SLAVES; i++)
    {
-      printf("<-**Exception= %X**->\r\n\r\n", Slaves[Current].error);
+      if(!modbus_read_coils(MODBUS_SLAVE_ADDRESS[0],0,10, &Slaves[i]))
+      {
+         printf("Data: ");
+         /*Started at 1 since 0 is quantity of coils*/
+         for(int i=1; i < (Slaves[i].len); ++i)
+         {
+            printf("%X ", Slaves[i].data[i]);
+         }
+         printf("\r\n\r\n");
+      }
+      else
+      {
+         printf("<-**Exception= %X**->\r\n\r\n", Slaves[i].error);
+      }
    }
 }
 

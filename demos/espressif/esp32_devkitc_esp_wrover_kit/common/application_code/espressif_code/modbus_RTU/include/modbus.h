@@ -220,7 +220,7 @@ void incomming_modbus_serial_new(void);
 //MASTER API FUNCTIONS PROTOTYPES:
 //All master API functions return 0 on success. 
 
-uint8_t modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity);
+bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct);
 
 bool modbus_read_discrete_input(int8_t, int16_t, int16_t);
 

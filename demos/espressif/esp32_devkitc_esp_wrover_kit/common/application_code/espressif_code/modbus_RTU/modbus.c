@@ -23,7 +23,6 @@ uint8_t Modbus_RX_BUFFER[MODBUS_SERIAL_RX_BUFFER_SIZE];
 
 
 extern bool Valid_data_Flag;
-extern  modbus_rx_buf_struct Slaves[];
 extern uint8_t Current;
 
 int len=0;        
@@ -266,46 +265,45 @@ read_coils
 */
 
 
-uint8_t modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity)
+bool modbus_read_coils(uint8_t address, int16_t start_address, int16_t quantity, modbus_rx_buf_struct * rx_struct)
 {
-        bool ok;
-        uint8_t msg[] = {address, FUNC_READ_COILS, 
-                        make8(start_address,1), make8(start_address,0), 
-                        make8(quantity,1), make8(quantity,0)};
+   bool ok;
+   uint8_t msg[] = {address, FUNC_READ_COILS, 
+            make8(start_address,1), make8(start_address,0), 
+            make8(quantity,1), make8(quantity,0)};
 
-        modbus_serial_send_start(address, FUNC_READ_COILS);
-        modbus_serial_putc(make8(start_address,1));
-        modbus_serial_putc(make8(start_address,0));
-        modbus_serial_putc(make8(quantity,1));
-        modbus_serial_putc(make8(quantity,0));
-        
-        uint16_t CRC_RTN =CRC16 (msg, 6);
-        modbus_serial_crc.b[1] = CRC_RTN >> 8;
-        modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
-        
-        modbus_serial_send_stop();
+   modbus_serial_send_start(address, FUNC_READ_COILS);
+   modbus_serial_putc(make8(start_address,1));
+   modbus_serial_putc(make8(start_address,0));
+   modbus_serial_putc(make8(quantity,1));
+   modbus_serial_putc(make8(quantity,0));
 
-         
-        ok = modbus_read_hw_buffer(address);
-        modbus_copy_rx_buffer(&Slaves[Current]); 
-       // Slaves[Current]=modbus_rx;     
-        
+   uint16_t CRC_RTN =CRC16 (msg, 6);
+   modbus_serial_crc.b[1] = CRC_RTN >> 8;
+   modbus_serial_crc.b[0] = (uint8_t)CRC_RTN; 
 
-        return Slaves[Current].error;
+   modbus_serial_send_stop();
+
+
+   ok = modbus_read_hw_buffer(address);
+
+   modbus_copy_rx_buffer(rx_struct);
+
+   return ok;
 }
 
 void modbus_copy_rx_buffer(modbus_rx_buf_struct * rx_struct)
 {
-        if (rx_struct == NULL)
-        {
-                return;
-        }
+   if (rx_struct == NULL)
+   {
+      return;
+   }
 
-        rx_struct->address = modbus_rx.address;
-        rx_struct->len = modbus_rx.len;
-        rx_struct->func = modbus_rx.func;
-        rx_struct->error = modbus_rx.error;
-        strncpy((char *)rx_struct->data, (char *)modbus_rx.data, MODBUS_SERIAL_RX_BUFFER_SIZE);
+   rx_struct->address = modbus_rx.address;
+   rx_struct->len = modbus_rx.len;
+   rx_struct->func = modbus_rx.func;
+   rx_struct->error = modbus_rx.error;
+   strncpy((char *)rx_struct->data, (char *)modbus_rx.data, MODBUS_SERIAL_RX_BUFFER_SIZE);
 }
 
 
