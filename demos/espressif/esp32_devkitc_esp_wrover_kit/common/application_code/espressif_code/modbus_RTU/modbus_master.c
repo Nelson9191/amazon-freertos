@@ -101,7 +101,7 @@ void FSM_CONTROL(void)
 {
   // read_all_coils();
    parse_read(FSM_State);
-   clear_modbus_buff(&Slaves[current_slave_ctr]);
+   
    //parse_write(FSM_State);
    
    if(++FSM_State==3)
@@ -140,7 +140,7 @@ void parse_read(uint8_t c)
 
       break;
    }
-  
+  clear_modbus_buff(&Slaves[current_slave_ctr]);
 }
 
 void parse_write(char c)
@@ -181,7 +181,7 @@ void read_all_coils(void)
 {
    printf("Coils-> ");
 
-   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,10, &Slaves[current_slave_ctr]))
+   if(!modbus_read_coils(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,10, &Slaves[current_slave_ctr]))
    {
       printf("Len: %d\n", Slaves[current_slave_ctr].len);
       printf("Data: ");
@@ -205,7 +205,7 @@ void read_all_coils(void)
 void read_all_inputs(void)
 {
    printf("Inputs:\r\n");
-   if(modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
+   if(!modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
@@ -229,7 +229,7 @@ void read_all_inputs(void)
 void read_all_holding(void)
 {
    printf("Holding Registers:\r\n");
-   if(modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
+   if(!modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/

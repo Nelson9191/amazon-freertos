@@ -79,7 +79,7 @@ int32_t modbus_serial_wait=MODBUS_SERIAL_TIMEOUT;
 
 
 
-bool modbus_read_hw_buffer(uint8_t Add)
+uint8_t modbus_read_hw_buffer(uint8_t Add)
 {
     uint8_t index = 0;
     uint16_t broke = 0;
@@ -110,7 +110,7 @@ bool modbus_read_hw_buffer(uint8_t Add)
     {
         modbus_rx.error = TIMEOUT;
         printf("Modbus Timed out \n");
-        ok = false;
+        ok = modbus_rx.error;
     }
     else
     {
@@ -130,13 +130,20 @@ bool modbus_read_hw_buffer(uint8_t Add)
         uint16_t CRC_RCV = (uint16_t)((buffer[len-2])<<8 ) | (buffer[len-1]);
 
         uint16_t CRC_RTN = CRC16 (buffer, len - 2);
-        //printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
-        //printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
-
-        Valid_data_Flag = ((CRC_RTN == CRC_RCV)&&((Add==modbus_rx.address)))?MODBUS_TRUE:MODBUS_FALSE;
+        printf("Recv checksum: %2x %2x\n", buffer[len-2], buffer[len-1]);
+        printf("Calc checksum: %2x %2x\n", (uint8_t)(CRC_RTN>>8), (uint8_t)(CRC_RTN));
+        if(modbus_rx.func & 0x80)  
+        {
+            modbus_rx.error= modbus_rx.data[0];
+            modbus_rx.len = 1;
+            ok =  modbus_rx.error; 
+        }
+         
+        if((CRC_RTN == CRC_RCV)&&(Add==modbus_rx.address))
+         ok=MODBUS_FALSE;
         //printf("Data REceived: \n");  
         //printf("--  %.*s [%d]\n", (len > 2 ? len - 2 : len), buffer, len);
-        ok=Valid_data_Flag;   
+       
         
     }
 
@@ -195,7 +202,7 @@ void modbus_serial_send_stop(void)
         modbus_serial_putc(crc_low);
         
         gpio_handler_write(MODBUS_SERIAL_ENABLE_PIN, 0);
-        ets_delay_us(3500000/MODBUS_SERIAL_BAUD); //3.5 character delay
+        //ets_delay_us(3500000/MODBUS_SERIAL_BAUD); //3.5 character delay
         modbus_serial_crc.d=0xFFFF;
 }
 /*

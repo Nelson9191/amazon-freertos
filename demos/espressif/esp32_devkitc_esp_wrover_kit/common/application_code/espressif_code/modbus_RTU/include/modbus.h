@@ -212,7 +212,7 @@ int modbus_kbhit(void);
 void modbus_serial_send_start(uint8_t, uint8_t);
 uint16_t CRC16 (uint8_t * puchMsg, int8_t usDataLen);
 uint16_t crc_modbus( const unsigned char *input_str, int num_bytes );
-bool modbus_read_hw_buffer(uint8_t);
+uint8_t modbus_read_hw_buffer(uint8_t);
 
 
 
