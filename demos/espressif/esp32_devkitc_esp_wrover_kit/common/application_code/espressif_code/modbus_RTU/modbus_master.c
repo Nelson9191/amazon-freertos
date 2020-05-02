@@ -58,7 +58,7 @@ static void _modbus_task(void * pvParameters)
 
    printf("Modbus created\n");
 
-   vTaskDelay(5000 / portTICK_PERIOD_MS);
+   vTaskDelay(2000 / portTICK_PERIOD_MS);
    current_slave_ctr=0;
    for(;;)
    {
@@ -99,14 +99,15 @@ static void _modbus_task(void * pvParameters)
 
 void FSM_CONTROL(void)
 {
-  // read_all_coils();
+   //read_all_coils();
    parse_read(FSM_State);
    
    //parse_write(FSM_State);
    
-   if(++FSM_State==3)
-   FSM_State=0;
-
+   if (++FSM_State==3)
+   {
+      FSM_State=0;
+   }
 }
 
 
@@ -179,9 +180,9 @@ int8_t swap_bits(int8_t c)
 
 void read_all_coils(void)
 {
-   printf("Coils-> ");
+   printf("Coils:\n");
 
-   if(!modbus_read_coils(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,10, &Slaves[current_slave_ctr]))
+   if(modbus_read_coils(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,10, &Slaves[current_slave_ctr]))
    {
       printf("Len: %d\n", Slaves[current_slave_ctr].len);
       printf("Data: ");
@@ -204,14 +205,14 @@ void read_all_coils(void)
 
 void read_all_inputs(void)
 {
-   printf("Inputs:\r\n");
-   if(!modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
+   printf("Inputs:\n");
+   if(modbus_read_discrete_input(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
       for(int i = 1; i < Slaves[current_slave_ctr].len; ++i)
       {
-         printf("%X ", Slaves[current_slave_ctr].data[i]);
+         printf("0x%X ", Slaves[current_slave_ctr].data[i]);
       }
       printf("\n\n");
    }
@@ -228,13 +229,13 @@ void read_all_inputs(void)
 
 void read_all_holding(void)
 {
-   printf("Holding Registers:\r\n");
-   if(!modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
+   printf("Holding Registers:\n");
+   if(modbus_read_holding_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
    {
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
       for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
-         printf("%X ", Slaves[current_slave_ctr].data[i]);
+         printf("0x%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
@@ -248,14 +249,14 @@ void read_all_holding(void)
 
 void read_all_input_reg(void)
 {
-   printf("Input Registers:\r\n");
-   if(!(modbus_read_input_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr])))
+   printf("Input Registers:\n");
+   if(modbus_read_input_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8, &Slaves[current_slave_ctr]))
    {
       printf("Len: %d\n", Slaves[current_slave_ctr].len);
       printf("Data: ");
       /*Started at 1 since 0 is quantity of coils*/
       for(int i=1; i < (Slaves[current_slave_ctr].len); ++i)
-         printf("%X ", Slaves[current_slave_ctr].data[i]);
+         printf("0x%X ", Slaves[current_slave_ctr].data[i]);
       printf("\r\n\r\n");
    }
    else
@@ -272,7 +273,7 @@ void read_all_input_reg(void)
 
 void write_coil(void)
 {
-   printf("Writing Single Coil:\r\n");
+   printf("Writing Single Coil:\n");
    if(!(modbus_write_single_coil(MODBUS_SLAVE_ADDRESS[current_slave_ctr],6,MODBUS_TRUE)))
    {
       printf("Data: ");
@@ -295,7 +296,7 @@ void write_coil(void)
 
 void write_reg(void)
 {
-   printf("Writing Single Register:\r\n");
+   printf("Writing Single Register:\n");
    if(!(modbus_write_single_register(MODBUS_SLAVE_ADDRESS[current_slave_ctr],3,0x4444)))
    {
       printf("Data: ");
@@ -319,7 +320,7 @@ void write_reg(void)
 void write_coils(void)
 {
    int8_t coils[1] = { 0x50 };
-   printf("Writing Multiple Coils:\r\n");
+   printf("Writing Multiple Coils:\n");
    if(!(modbus_write_multiple_coils(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,8,coils)))
   {
       printf("Data: ");
@@ -342,7 +343,7 @@ void write_coils(void)
 void write_regs(void)
 {
    int16_t reg_array[2] = {0x1111, 0x2222};
-   printf("Writing Multiple Registers:\r\n");
+   printf("Writing Multiple Registers:\n");
    if(!(modbus_write_multiple_registers(MODBUS_SLAVE_ADDRESS[current_slave_ctr],0,2,reg_array)))
    {
       printf("Data: ");
