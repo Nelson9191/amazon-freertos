@@ -82,10 +82,7 @@ static void ntp_task(void * pvParameters){
             vTaskDelete(NULL);
         }
         else{
-            print("NO timestampt! - should restart -- temporary fix\n")
-            //esp_restart();
-            flags_set_timestamp_captured();
-            vTaskDelete(NULL
+            esp_restart();
         }
     }
 }

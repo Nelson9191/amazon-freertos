@@ -255,15 +255,15 @@ void gpio_handler_config_gpios(){
     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;//disable interrupt    
     io_conf.mode = GPIO_MODE_OUTPUT;
     io_conf.pin_bit_mask = gpio_handler_get_output_mask(); // Toma la mascara de bit de gpios de entrada
-    io_conf.pull_down_en = 0;//disable pull-down mode
+    io_conf.pull_down_en = 1;//disable pull-down mode
     io_conf.pull_up_en = 0;//disable pull-up mode    
     gpio_config(&io_conf);//configure GPIO with the given settings
 
     io_conf.intr_type = GPIO_INTR_ANYEDGE;//interrupt of rising edge
     io_conf.pin_bit_mask = gpio_handler_get_input_mask();
     io_conf.mode = GPIO_MODE_INPUT;    
-    io_conf.pull_down_en = 0;//disable pull-down mode
-    io_conf.pull_up_en = 1;//enable pull-up mode
+    io_conf.pull_down_en = 1;//disable pull-down mode
+    io_conf.pull_up_en = 0;//enable pull-up mode
     gpio_config(&io_conf);
 
     gpio_install_isr_service(0);//Activa llamada a ISR cuando hay interrupciones
