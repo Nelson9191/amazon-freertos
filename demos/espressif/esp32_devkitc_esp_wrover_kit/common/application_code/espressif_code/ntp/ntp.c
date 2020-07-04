@@ -58,6 +58,9 @@ bool ntp_get_date(){
         rtc_config_set_time(tmp);
         return true;
     }
+    else{
+        printf("Failed to get timestamp\n");
+    }
 
     udp_close_socket(socket);
     return false;
@@ -79,7 +82,10 @@ static void ntp_task(void * pvParameters){
             vTaskDelete(NULL);
         }
         else{
-            esp_restart();
+            print("NO timestampt! - should restart -- temporary fix\n")
+            //esp_restart();
+            flags_set_timestamp_captured();
+            vTaskDelete(NULL
         }
     }
 }
