@@ -15,7 +15,8 @@ typedef union {
         boolean_t wifi_connected :      1;
         boolean_t mqtt_connected :      1;
         boolean_t timestamp_captured :  1;
-        int not_used :                  27;        
+        boolean_t timestamp_failed :    1;
+        int not_used :                  26;        
     };
     int raw_flags;
 } flags_t;
@@ -101,5 +102,26 @@ Resetea flag de timestamp
 @Return: 
 */
 void flags_reset_timestamp_captured();
+
+/*
+Revisa si el la captura del timestamp fue correcta 
+@Params:
+@Return: true si módulo inicializado, false de lo contrario
+*/
+bool flags_is_timestamp_failed();
+
+/*
+Setea flag de timestamp fail
+@Params:
+@Return: 
+*/
+void flags_set_timestamp_failed();
+
+/*
+Resetea flag de timestamp fail
+@Params:
+@Return: 
+*/
+void flags_reset_timestamp_failed();
 
 #endif

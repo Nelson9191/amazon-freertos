@@ -82,10 +82,9 @@ static void ntp_task(void * pvParameters){
             vTaskDelete(NULL);
         }
         else{
-            printf("Unable to get timestamp -- temporal fix won't let ESP to restart\n");
-            flags_set_timestamp_captured();
+            printf("Unable to get timestamp from NTP server\n");
+            flags_set_timestamp_failed();
             vTaskDelete(NULL);
-            //esp_restart(); -- temporal
         }
     }
 }

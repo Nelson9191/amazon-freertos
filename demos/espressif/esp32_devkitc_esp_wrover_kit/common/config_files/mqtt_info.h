@@ -63,6 +63,10 @@ static const char MQTT_BROKER_ENDPOINT[] = "a3b86accc5t4qb.iot.us-east-1.amazona
 
 #define MQTT_HEARTBEAT_TOPIC      ( ( const uint8_t * ) "heartbeat/12345678" )
 
+#define MQTT_CONFIG_PUB_TOPIC    ( ( const uint8_t * ) "configuration/in/12345678" )
+
+#define MQTT_CONFIG_SUBS_TOPIC   ( ( const uint8_t * ) "configuration/out/12345678" )
+
 /* Timeout used when performing MQTT operations that do not need extra time
 to perform a TLS negotiation. */
 #define MQTT_TIMEOUT            pdMS_TO_TICKS( 3000 )

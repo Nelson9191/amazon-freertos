@@ -21,6 +21,19 @@ void flags_init(){
     }
 }
 
+static bool _flags_take_mutex(){
+    if(xSemaphoreTake(flags_mutex, flags_max_block_time) == pdPASS){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+static void _flags_give_mutex(){
+    xSemaphoreGive(flags_mutex);
+}
+
 bool flags_is_nvs_ok(){
     bool ret = false;
     if(_flags_take_mutex()){
@@ -106,15 +119,26 @@ void flags_reset_timestamp_captured(){
     _flags_give_mutex();
 }
 
-static bool _flags_take_mutex(){
-    if(xSemaphoreTake(flags_mutex, flags_max_block_time) == pdPASS){
-        return true;
+bool flags_is_timestamp_failed(){
+    bool ret = false;
+    if(_flags_take_mutex()){
+        ret = CONTROL_FLAGS.timestamp_failed ? true : false;
     }
-    else{
-        return false;
-    }
+    _flags_give_mutex();
+    return ret;
 }
 
-static void _flags_give_mutex(){
-    xSemaphoreGive(flags_mutex);
+void flags_set_timestamp_failed(){
+    if(_flags_take_mutex()){
+        CONTROL_FLAGS.timestamp_failed = 1;
+    }
+    _flags_give_mutex();
 }
+
+void flags_reset_timestamp_failed(){
+    if(_flags_take_mutex()){
+        CONTROL_FLAGS.timestamp_failed = 0;
+    }
+    _flags_give_mutex();
+}
+

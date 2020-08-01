@@ -26,6 +26,7 @@ QueueHandle_t mqtt_queue;
 static uint32_t timestamp_sent;
 static uint32_t timestamp_received;
 
+static bool hour_fetched = false;
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
@@ -78,18 +79,13 @@ void mqtt_config_task(void * pvParameters){
     for(;;){
 
         if(ctr_disconnect)
-            printf("DISCONNECT: %d\n", ctr_disconnect);
+            printf("MQTT DISCONNECT: %d\n", ctr_disconnect);
             
         if(!flags_is_wifi_connected()){
             vTaskDelay(5000 / portTICK_PERIOD_MS);
             if(ctr_disconnect++ > 12){
                 esp_restart();
             }
-            continue;
-        }
-
-        if (!flags_is_timestamp_captured()){
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
             continue;
         }
 
@@ -120,11 +116,27 @@ void mqtt_config_task(void * pvParameters){
                 mqtt_config_disconnect();
                 ctr_disconnect = 0;
                 goto br;
-            }            
+            }
+
+            xReturned = mqtt_config_subscribe_to_config();
+            if(xReturned != eMQTTAgentSuccess){
+                mqtt_config_disconnect();
+                ctr_disconnect = 0;
+                goto br;
+            }        
         }
         else{
             mqtt_config_verify_heartbeat();
             ctr_disconnect = 0;
+        }
+
+        if (flags_is_timestamp_failed() && !hour_fetched){
+            mqtt_config_request_config_param(eCLOCK);
+        }
+
+        if (!flags_is_timestamp_captured()){
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            continue;
         }
     
         if(xQueueReceive(mqtt_queue, &mqtt_msg, 0 )){//Lee si hay items en la cola
@@ -149,35 +161,38 @@ end_task:
 
 void mqtt_config_report_status(struct MqttMsg mqtt_msg){
     MQTTAgentReturnCode_t xReturned;
-    MQTTAgentPublishParams_t xPublishParameters;
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
 
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"parameter\": \"%s\", \"value\": %d, \"date\": %u, \"connection\":true}", mqtt_msg.name, mqtt_msg.status , mqtt_msg.timestamp);
-    printf("%s\n", cDataBuffer);
-    memset(&(xPublishParameters), 0x00, sizeof(xPublishParameters));
-    xPublishParameters.pucTopic = MQTT_PUBLISH_TOPIC;
-    xPublishParameters.pvData = cDataBuffer;
-    xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_PUBLISH_TOPIC );
-    xPublishParameters.ulDataLength = ( uint32_t ) strlen( cDataBuffer );
-    xPublishParameters.xQoS = eMQTTQoS1;
-    xReturned = MQTT_AGENT_Publish( xMQTTHandle, &( xPublishParameters ), MQTT_TIMEOUT );
-
+    xReturned = mqtt_config_send_msg(MQTT_PUBLISH_TOPIC, cDataBuffer);
 }
 
 void mqtt_config_send_heartbeat(uint32_t curr_timestamp){
     MQTTAgentReturnCode_t xReturned;
-    MQTTAgentPublishParams_t xPublishParameters;
     char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
 
     (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
-    printf("-----------%s\n", cDataBuffer);
+    xReturned = mqtt_config_send_msg(MQTT_HEARTBEAT_TOPIC, cDataBuffer);
+}
+
+void mqtt_config_send_config_param(uint32_t curr_timestamp){
+    MQTTAgentReturnCode_t xReturned;
+    char cDataBuffer[ MQTT_MAX_DATA_LENGTH ];
+    (void)snprintf( cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"timestamp\": %u}", curr_timestamp);
+    xReturned = mqtt_config_send_msg(MQTT_CONFIG_PUB_TOPIC, cDataBuffer);
+}
+
+static MQTTAgentReturnCode_t mqtt_config_send_msg(const uint8_t*  topic, const char* msg){
+    printf("Send to broker: %s\n", msg);
+
+    MQTTAgentPublishParams_t xPublishParameters;
     memset(&(xPublishParameters), 0x00, sizeof(xPublishParameters));
-    xPublishParameters.pucTopic = MQTT_HEARTBEAT_TOPIC;
-    xPublishParameters.pvData = cDataBuffer;
-    xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_HEARTBEAT_TOPIC );
-    xPublishParameters.ulDataLength = ( uint32_t ) strlen( cDataBuffer );
+    xPublishParameters.pucTopic = topic;
+    xPublishParameters.pvData = msg;
+    xPublishParameters.usTopicLength = ( uint16_t ) strlen( ( const char * ) topic );
+    xPublishParameters.ulDataLength = ( uint32_t ) strlen( msg );
     xPublishParameters.xQoS = eMQTTQoS1;
-    xReturned = MQTT_AGENT_Publish( xMQTTHandle, &( xPublishParameters ), MQTT_TIMEOUT );    
+    return MQTT_AGENT_Publish( xMQTTHandle, &( xPublishParameters ), MQTT_TIMEOUT ); 
 }
 
 static MQTTAgentReturnCode_t mqtt_config_create( void ){
@@ -330,6 +345,40 @@ static BaseType_t mqtt_config_subscribe_to_heartbeat(void){
     return xReturned;
 }
 
+static BaseType_t mqtt_config_subscribe_to_config(void){
+
+    if(!flags_is_mqtt_connected()){
+        return -1;
+    }
+    MQTTAgentReturnCode_t xReturned;
+    BaseType_t xReturn;
+    MQTTAgentSubscribeParams_t xSubscribeParams;
+ 
+    xSubscribeParams.pucTopic = MQTT_CONFIG_SUBS_TOPIC;
+    xSubscribeParams.pvPublishCallbackContext = NULL;
+    xSubscribeParams.pxPublishCallback = mqtt_config_subs_callback;
+    xSubscribeParams.usTopicLength = ( uint16_t ) strlen( ( const char * ) MQTT_CONFIG_SUBS_TOPIC );
+    xSubscribeParams.xQoS = eMQTTQoS1;
+
+    /* Subscribe to the topic. */
+    xReturned = MQTT_AGENT_Subscribe( xMQTTHandle,
+                                      &xSubscribeParams,
+                                      MQTT_TIMEOUT );
+
+    if( xReturned == eMQTTAgentSuccess )
+    {
+        configPRINTF( ( "MQTT Echo demo subscribed to %s\r\n", MQTT_CONFIG_SUBS_TOPIC ) );
+        xReturn = pdPASS;
+    }
+    else
+    {
+        configPRINTF( ( "ERROR:  MQTT Echo demo could not subscribe to %s\r\n", MQTT_CONFIG_SUBS_TOPIC ) );
+        xReturn = pdFAIL;
+    }
+
+    return xReturned;
+}
+
 static MQTTBool_t mqtt_config_subs_callback(void * pvUserData, const MQTTPublishData_t * const pxCallbackParams){
     char cBuffer[ MQTT_MAX_DATA_LENGTH];
     uint32_t ulBytesToCopy = ( MQTT_MAX_DATA_LENGTH - 1 );
@@ -359,6 +408,17 @@ static MQTTBool_t mqtt_config_subs_callback(void * pvUserData, const MQTTPublish
             mqtt_config_process_output(cBuffer); 
         } 
     }
+    else if (memcmp(pxCallbackParams->pucTopic, MQTT_CONFIG_SUBS_TOPIC, (size_t)(pxCallbackParams->usTopicLength)) == 0){
+        if( pxCallbackParams->ulDataLength <= ulBytesToCopy ){
+            ulBytesToCopy = pxCallbackParams->ulDataLength;
+
+            memset( cBuffer, 0x00, sizeof( cBuffer ) );
+            memcpy( cBuffer, pxCallbackParams->pvData, ( size_t ) ulBytesToCopy );
+
+            printf("CONFIGURATION\n");
+            mqtt_config_process_configuration(cBuffer);
+        }
+    }
 
     /* The data was copied into the FreeRTOS message buffer, so the buffer
      * containing the data is no longer required.  Returning eMQTTFalse tells the
@@ -385,48 +445,6 @@ static BaseType_t mqtt_events_callback (void * pvUserData, const MQTTAgentCallba
     return pdTRUE;
 }
 
-/*
-
-Callback
-You can specify an optional callback that is invoked whenever the MQTT agent is disconnected from the broker or whenever 
-a publish message is received from the broker. The received publish message is stored in a buffer taken from the 
-central buffer pool. This message is passed to the callback. This callback runs in the context of the MQTT task and 
-therefore must be quick. If you need to do longer processing, you must take the ownership of the buffer by returning 
-pdTRUE from the callback. You must then return the buffer back to the pool whenever you are done by calling 
-FreeRTOS_Agent_ReturnBuffer.
-
-typedef enum
-{
-    eMQTTAgentPublish,   //< A Publish message was received from the broker. 
-    eMQTTAgentDisconnect //< The connection to the broker got disconnected. 
-} MQTTAgentEvent_t;
-*/
-
-
-/**
- * @brief Signature of the callback registered by the user to get notified of various events.
- *
- * The user can register an optional callback to get notified of various events.
- *
- * @param[in] pvUserData The user data as provided in the connect parameters while connecting.
- * @param[in] pxCallbackParams The event and related data.
- *
- * @return The return value is ignored in all other cases except publish (i.e. eMQTTAgentPublish
- * event):
- * 1. If pdTRUE is returned - The ownership of the buffer passed in the callback (xBuffer
- * in MQTTPublishData_t) lies with the user.
- * 2. If pdFALSE is returned - The ownership of the buffer passed in the callback (xBuffer
- * in MQTTPublishData_t) remains with the library and it is recycled as soon as
- * the callback returns.<br>
- * The user should take the ownership of the buffer containing the received message from the
- * broker by returning pdTRUE from the callback if the user wants to use the buffer after
- * the callback is over. The user should return the buffer whenever done by calling the
- * MQTT_AGENT_ReturnBuffer API.
- *
- * @see MQTTAgentCallbackParams_t.
- */
-
-
 void mqtt_config_process_heartbeat(const char * cBuffer){
 	int r;
     jsmn_parser p;
@@ -441,7 +459,6 @@ void mqtt_config_process_heartbeat(const char * cBuffer){
         printf("Failed to parse JSON: %d\n", r);
         return 1;
     }
-
 
     /* Assume the top-level element is an object */
     if (r < 1 || t[0].type != JSMN_OBJECT) {
@@ -490,28 +507,23 @@ void mqtt_config_process_output(const char * cBuffer){
         if (jsoneq(cBuffer, &t[i], DO01_NAME) == 0) {
             snprintf(mqtt_msg.name, 10, "%s", DO01_NAME);
             gpio = 1;
-            i++;                
         } else if (jsoneq(cBuffer, &t[i], DO02_NAME) == 0) {
             snprintf(mqtt_msg.name, 10, "%s", DO02_NAME);
             gpio = 2;
-            i++;
         } else if (jsoneq(cBuffer, &t[i], DO03_NAME) == 0) {            
             snprintf(mqtt_msg.name, 10, "%s", DO03_NAME);
             gpio = 3;
-            i++;
         } else if (jsoneq(cBuffer, &t[i], DO04_NAME) == 0) {
             snprintf(mqtt_msg.name, 10, "%s", DO04_NAME);
             gpio = 4;
-            i++;
         }else if (jsoneq(cBuffer, &t[i], "hora") == 0) {
             gpio = 0;
-            i++; 
             rtc_config_set_time_(value, 0);
         }else {
-            printf("Unexpected key: %.*s\n", t[i].end-t[i].start,
-                    cBuffer + t[i].start);
-            i++;                        
+            printf("Unexpected key: %.*s\n", t[i].end-t[i].start,cBuffer + t[i].start);
         }
+
+        i++;
     }
 
     if(gpio > 0){            
@@ -531,7 +543,73 @@ void mqtt_config_verify_heartbeat(){
     }
 
     if((timestamp_sent > timestamp_received) && (timestamp_sent - timestamp_received > 240)){ // Reiniciar
-        printf("Deberia reiniciar ahora\n");
+        printf("mqtt_config_verify_heartbeat -- restart now\n");
         esp_restart();
+    }
+}
+
+static void mqtt_config_process_configuration(const char * cBuffer){
+	int r;
+    jsmn_parser p;
+	jsmntok_t t[20]; /* We expect no more than 128 tokens */
+    char value[JSON_VALUE_LEN];
+    unsigned long long int timestamp;
+    enum E_CONFIG_PARAM e_config_param = eNONE;
+    
+    memset(value, 0, sizeof(char) * JSON_VALUE_LEN);
+    printf("config from broker: %s\n", cBuffer);
+
+    jsmn_init(&p);
+    r = jsmn_parse(&p, cBuffer, strlen(cBuffer), t, sizeof(t)/sizeof(t[0]));
+    if (r < 0) {
+        printf("Failed to parse JSON: %d\n", r);
+        return 1;
+    }
+
+    /* Assume the top-level element is an object */
+    if (r < 1 || t[0].type != JSMN_OBJECT) {
+        printf("Object expected\n");
+        return 1;
+    } 
+
+    for (int i = 1; i < r; i++) {
+        memset(value, 0x00, JSON_VALUE_LEN);
+        strncpy(value, cBuffer + t[i+1].start, t[i+1].end-t[i+1].start);
+        if (jsoneq(cBuffer, &t[i], "name") == 0){
+            if (jsoneq(cBuffer, &t[i+1], "Clock") == 0){
+                e_config_param = eCLOCK;
+            }
+        }
+        else if (jsoneq(cBuffer, &t[i], "value") == 0){
+            if (e_config_param == eCLOCK){
+                if(sscanf(value, "%llu", &timestamp) > 0){
+                    timestamp /= 1000;
+                    printf("Timestamp capturd from broker: %llu\n", timestamp);
+                    rtc_config_set_time(timestamp);
+                    flags_set_timestamp_captured();
+                    flags_reset_timestamp_failed();
+                    hour_fetched = true; 
+                }
+            }
+
+            break;
+        }
+
+        i++;
+    }
+}
+
+static void mqtt_config_request_config_param(enum E_CONFIG_PARAM e_param){
+    char cDataBuffer[MQTT_MAX_DATA_LENGTH];
+
+    switch (e_param)
+    {
+        case eCLOCK:
+            (void)snprintf(cDataBuffer, MQTT_MAX_DATA_LENGTH, "{\"name\": \"Clock\", \"dataType\" : \"long\"}");
+            (void)mqtt_config_send_msg(MQTT_CONFIG_PUB_TOPIC, cDataBuffer);
+            break;
+
+        default:
+            break;
     }
 }

@@ -4,6 +4,11 @@
 #include "FreeRTOS.h"
 #include "aws_mqtt_agent.h"
 
+enum E_CONFIG_PARAM{
+    eNONE,
+    eCLOCK
+};
+
 static BaseType_t mqtt_config_connect_to_broker( void );
 
 static BaseType_t mqtt_config_subscribe_to_output(void);
@@ -30,6 +35,14 @@ static void mqtt_config_verify_heartbeat();
 static void mqtt_config_process_output(const char * cBuffer);
 
 static void mqtt_config_process_heartbeat(const char * cBuffer);
+
+static void mqtt_config_request_config_param(enum E_CONFIG_PARAM e_param);
+
+static BaseType_t mqtt_config_subscribe_to_config(void);
+
+static MQTTAgentReturnCode_t mqtt_config_send_msg(const uint8_t*  topic, const char* msg);
+
+static void mqtt_config_process_configuration(const char * cBuffer);
 
 
 #endif

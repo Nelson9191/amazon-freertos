@@ -7,7 +7,6 @@
 #include "queue_conf.h"
 
 
-
 /**
  * Estructura para almacenar los mensajes del gpio que cambia de estado.
  * Estos mensajes son encolados desde el gpio_task; y desencolados
